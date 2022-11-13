@@ -1,0 +1,18 @@
+{
+  "name": "mymodule.py",
+  "children": [
+    {
+      "name": "foo",
+      "size": 1
+    },
+    {
+      "name": "bar",
+      "children": [
+        {
+          "name": "baz",
+          "size": 2
+        }
+      ]
+    }
+  ]
+}
