@@ -190,10 +190,11 @@ function setUp() {
   }
 
   d3.json("wd_sample_data.json", Pack);
+
   // data = JSON.parse(
   //   '{"name":"module.py","children":[{"name":"bar()","value":1},{"name":"Foo","children":[{"name":"a(self, x, y)","value":3},{"name":"b(self, x)","value":2},{"name":"c(cls, x)","value":2},{"name":"d(self)","value":1}]}]}'
   // );
-  Pack(data);
+  // Pack(data);
 }
 
 setUp();
