@@ -80,6 +80,7 @@ const circles = pod
   .data(circle_data)
   .enter()
   .append("circle")
+  .attr("class", "node")
   .attr("r", 2 * r)
   .attr("transform", function (d) {
     return "translate(" + d + ")";
@@ -90,6 +91,67 @@ var pack = d3
   .size([width, height - 50])
   .padding(10);
 
-d3.json("wd_sample_data.json", function (data) {
-  var nodes = pack.nodes(data);
-});
+function computed_radius(node) {
+  return node.r / node.depth;
+}
+
+function Pack(data) {
+  const root = pack(
+    d3
+      .hierarchy(data)
+      .sum((d) => d.value)
+      .sort((a, b) => b.value - a.value)
+  );
+  var node = pod
+    .selectAll(".node")
+    .data(root)
+    .enter()
+    .append("g")
+    .attr("class", "node")
+    .attr("transform", function (d) {
+      return `translate(${d.x},${d.y})`;
+    });
+  node
+    .append("circle")
+    .attr("r", function (d) {
+      console.log("r", d.r, computed_radius(d));
+      return computed_radius(d);
+    })
+    .attr("class", function (d) {
+      return d.height ? "parent" : "leaf";
+    })
+    .attr("data-depth", function (d) {
+      return d.depth;
+    })
+    .attr("data-height", function (d) {
+      return d.height;
+    })
+    .attr("data-value", function (d) {
+      return d.value;
+    })
+    .attr("fill", function (d) {
+      return d.children ? "#fff" : "steelblue";
+    })
+    .attr("opacity", 0.25)
+    .attr("stroke", "#ADADAD")
+    .attr("stroke-width", 2);
+  // node.append("text").text("Hello");
+  var label = node.append("text");
+  label.text(function (d) {
+    return d.data.name;
+  });
+  label.attr("class", "label").attr("transform", function (d) {
+    text_bbox = this.getBBox(); // bounding client rect misbehaves
+    text_width = text_bbox.width; // same as getComputedTextLength
+    text_height = text_bbox.height;
+    var x_shift = -text_width / 2;
+    var y_shift = d.children ? -computed_radius(d) : text_height / 4;
+    return `translate(${x_shift},${y_shift})`;
+  });
+}
+
+// d3.json("wd_sample_data.json", Pack)
+data = JSON.parse(
+  '{"name":"mymodule.py","children":[{"name":"hello","value":25},{"name":"foo","children":[{"name":"foo1","value":30},{"name":"foo2","value":23},{"name":"foo3","value":33},{"name":"foo4","value":39},{"name":"foo5","value":20}]}]}'
+);
+Pack(data);

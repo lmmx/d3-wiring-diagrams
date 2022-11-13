@@ -1,7 +1,8 @@
-      svg {
-        border: 1px solid black;
-      }
+svg {
+  border: 1px solid black;
+}
 
-      circle {
-        fill: #dc143c;
-      }
+.pod > circle {
+  fill: #dc143c;
+  opacity: 0.5;
+}
