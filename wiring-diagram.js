@@ -184,9 +184,18 @@ function fit_label_to_diameter(node, bbox) {
   return tightening_factor;
 }
 
-var data = d3.json("wd_sample_data.json");
-// var data = JSON.parse(
-//   '{"name":"module.py","children":[{"name":"bar()","value":1},{"name":"Foo","children":[{"name":"a(self, x, y)","value":3},{"name":"b(self, x)","value":2},{"name":"c(cls, x)","value":2},{"name":"d(self)","value":1}]}]}'
-// );
-
-Pack(data);
+var data;
+var promised = d3.json("wd_sample_data.json").then(
+  function (fetched) {
+    console.log(fetched);
+    data = fetched;
+    Pack(data);
+  },
+  function (failed) {
+    console.debug("Fetch failed, falling back to stored JSON string");
+    data = JSON.parse(
+      '{"name":"module.py","children":[{"name":"bar()","value":1},{"name":"Foo","children":[{"name":"a(self, x, y)","value":3},{"name":"b(self, x)","value":2},{"name":"c(cls, x)","value":2},{"name":"d(self)","value":1}]}]}'
+    );
+    Pack(data);
+  }
+);
