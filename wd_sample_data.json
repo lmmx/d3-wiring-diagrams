@@ -1,32 +1,28 @@
 {
-  "name": "mymodule.py",
+  "name": "module.py",
   "children": [
     {
-      "name": "hello",
-      "value": 25
+      "name": "bar()",
+      "value": 1
     },
     {
-      "name": "foo",
+      "name": "Foo",
       "children": [
         {
-          "name": "foo1",
-          "value": 30
+          "name": "a(self, x, y)",
+          "value": 3
         },
         {
-          "name": "foo2",
-          "value": 23
+          "name": "b(self, x)",
+          "value": 2
         },
         {
-          "name": "foo3",
-          "value": 33
+          "name": "c(cls, x)",
+          "value": 2
         },
         {
-          "name": "foo4",
-          "value": 39
-        },
-        {
-          "name": "foo5",
-          "value": 20
+          "name": "d(self)",
+          "value": 1
         }
       ]
     }
