@@ -122,7 +122,7 @@ function Pack(data) {
   node
     .append("circle")
     .attr("r", function (d) {
-      console.log("r", d.r, computed_radius(d));
+      // console.debug("r", d.r, computed_radius(d));
       return computed_radius(d);
     })
     .attr("class", function (d) {
@@ -143,7 +143,11 @@ function Pack(data) {
     .attr("opacity", 0.25)
     .attr("stroke", "#ADADAD")
     .attr("stroke-width", 2);
-  var label = node.append("text");
+  var label_holder = node.append("g").attr("class", function (d) {
+    var is_leaf = d3.select(this.parentNode).select("circle").classed("leaf");
+    return "label-box" + (is_leaf ? " leafy" : " parental");
+  });
+  var label = label_holder.append("text");
   label.text(function (d) {
     return d.data.name;
   });
@@ -154,40 +158,64 @@ function Pack(data) {
   });
   label.attr("style", function (d) {
     var scale = this.dataset.scale_factor;
-    console.log(`Scale: ${scale}`);
+    // console.log(`Scale: ${scale}`);
     return `font-size: ${scale}rem`;
   });
-  label.attr("data-bbox-height", function (d) {
-    var width = this.dataset.bbox_width;
+  label.attr("data-width", function (d) {
+    return this.getBBox().width; // same as getComputedTextLength
   });
-  label.attr("class", "label").attr("transform", function (d) {
+  label.attr("data-height", function (d) {
+    return this.getBBox().height;
+  });
+  label.attr("class", "label").attr("data-transform", function (d) {
+    text_width = this.dataset.width;
+    text_height = this.dataset.height;
     text_bbox = this.getBBox(); // bounding client rect misbehaves
-    text_width = text_bbox.width; // same as getComputedTextLength
-    text_height = text_bbox.height;
-    console.log(`Name: ${d.data.name}, bbox:`, text_bbox);
     downscale_factor = fit_label_to_diameter(d, text_bbox);
-    // downscale_factor = 1.0;
     var x_shift = -(text_width / 2); // * downscale_factor;
     var depth_direction = d.depth ? -1 : 1; // module name goes below
     var y_shift = d.children
       ? depth_direction * computed_radius(d)
       : text_height / 4; // * downscale_factor;
+    var data_transform = [x_shift, y_shift];
+    return data_transform;
+  });
+  label.attr("class", "label").attr("transform", function (d) {
+    [x_shift, y_shift] = this.dataset.transform.split(",");
     return `translate(${x_shift},${y_shift})`;
   });
+  label_holder
+    .insert("rect", "text")
+    .attr("fill", function (holder) {
+      var is_par = d3.select(this.parentNode).classed("parental");
+      return is_par ? "white" : "none";
+    })
+    .attr("width", function (holder) {
+      return d3.select(this.parentNode).select("text").attr("data-width");
+    })
+    .attr("height", function (holder) {
+      return d3.select(this.parentNode).select("text").attr("data-height");
+    })
+    .attr("transform", function (holder) {
+      label = d3.select(this.parentNode).select("text");
+      [x_shift, y_shift] = label.attr("data-transform").split(",");
+      y_shift = parseFloat(y_shift) - wd_y_offset;
+      return `translate(${x_shift},${y_shift})`;
+    });
 }
 
 function fit_label_to_diameter(node, bbox) {
   scaling_threshold = 0.2; // ignore anything below this
   diameter = computed_radius(node) * 2;
   tightening_factor = (bbox.width - diameter) / diameter;
-  console.log(`Computed a scaling factor of ${tightening_factor}`, node, bbox);
+  // console.log(`Computed a scaling factor of ${tightening_factor}`, node, bbox);
   return tightening_factor;
 }
 
 var data;
 var promised = d3.json("wd_sample_data.json").then(
   function (fetched) {
-    console.log(fetched);
+    // console.log(fetched);
     data = fetched;
     Pack(data);
   },
