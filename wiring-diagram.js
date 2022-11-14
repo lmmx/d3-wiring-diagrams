@@ -4,6 +4,12 @@ r = 100;
 wd_canvas_space = 50;
 wd_y_offset = 20;
 label_y_offset = 5; // guessed based on performance
+dark_mode = false;
+fg_col = dark_mode ? "white" : "black";
+bg_col = dark_mode ? "black" : "white";
+fg_edge_col = dark_mode ? "#ACE4F5" : "#ADADAD"; // DARK: blue grey, LIGHT: red grey
+fg_text_col = dark_mode ? fg_col : fg_col;
+leaf_col = dark_mode ? "#48ff76" : "#0085fa"; // DARK: green, LIGHT: blue
 
 // var circle_data = [[width / 2, height / 2]];
 var circle_data = [];
@@ -36,7 +42,10 @@ const view = svg
   .attr("y", 0.5)
   .attr("width", width - 1)
   .attr("height", height - 1)
-  .attr("style", `opacity: ${view_debug_opacity}`);
+  .attr(
+    "style",
+    `opacity: ${dark_mode ? 1.0 - view_debug_opacity : view_debug_opacity}`
+  );
 
 const gX = svg
   .append("g")
@@ -133,10 +142,10 @@ function Pack(data) {
       return d.value;
     })
     .attr("fill", function (d) {
-      return d.children ? "#fff" : "steelblue";
+      return d.children ? bg_col : leaf_col;
     })
     .attr("opacity", 0.25)
-    .attr("stroke", "#ADADAD")
+    .attr("stroke", fg_edge_col)
     .attr("stroke-width", 2);
   var label_holder = node.append("g").attr("class", function (d) {
     var is_leaf = d3.select(this.parentNode).select("circle").classed("leaf");
@@ -151,11 +160,13 @@ function Pack(data) {
     factor = fit_label_to_diameter(d, text_bbox);
     return factor > -0.2 ? "1.0" : 1.0 - factor;
   });
-  label.attr("style", function (d) {
-    var scale = this.dataset.scale_factor;
-    // console.log(`Scale: ${scale}`);
-    return `font-size: ${scale}rem`;
-  });
+  label
+    .attr("style", function (d) {
+      var scale = this.dataset.scale_factor;
+      // console.log(`Scale: ${scale}`);
+      return `font-size: ${scale}rem`;
+    })
+    .attr("fill", fg_text_col);
   label.attr("data-width", function (d) {
     return this.getBBox().width; // same as getComputedTextLength
   });
@@ -181,7 +192,7 @@ function Pack(data) {
     .insert("rect", "text")
     .attr("fill", function (holder) {
       var is_par = d3.select(this.parentNode).classed("parental");
-      return is_par ? "white" : "none";
+      return is_par ? bg_col : "none";
     })
     .attr("fill-opacity", "0.6")
     .attr("width", function (holder) {
