@@ -3,26 +3,55 @@
   "children": [
     {
       "name": "bar()",
-      "value": 1
+      "children": [
+        {
+          "name": "x=1",
+          "value": 1
+        }
+      ]
     },
     {
       "name": "Foo",
       "children": [
         {
-          "name": "a(self, x, y)",
-          "value": 3
+          "name": "sum(self, x, y)",
+          "children": [
+            {
+              "name": "x + y",
+              "value": 3
+            }
+          ]
         },
         {
-          "name": "b(self, x)",
-          "value": 2
+          "name": "__init__(self, x, y)",
+          "children": [
+            {
+              "name": "self.x = x",
+              "value": 1
+            },
+            {
+              "name": "self.y = y",
+              "value": 1
+            }
+          ]
         },
         {
-          "name": "c(cls, x)",
-          "value": 2
+          "name": "from_xy(cls, xy)",
+          "children": [
+            {
+              "name": "cls(*xy)",
+              "value": 2
+            }
+          ]
         },
         {
-          "name": "d(self)",
-          "value": 1
+          "name": "xsq(self)",
+          "children": [
+            {
+              "name": "self.x ** 2",
+              "value": 1
+            }
+          ]
         }
       ]
     }

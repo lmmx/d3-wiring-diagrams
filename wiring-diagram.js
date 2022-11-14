@@ -3,13 +3,16 @@ width = 1500;
 r = 100;
 wd_canvas_space = 50;
 wd_y_offset = 20;
-label_y_offset = 5; // guessed based on performance
+padding = 50;
+scaling_threshold = 0.1;
+label_y_offset = wd_canvas_space / 2 - wd_y_offset; // guessed based on performance
 dark_mode = false;
 fg_col = dark_mode ? "white" : "black";
 bg_col = dark_mode ? "black" : "white";
 fg_edge_col = dark_mode ? "#ACE4F5" : "#ADADAD"; // DARK: blue grey, LIGHT: red grey
 fg_text_col = dark_mode ? fg_col : fg_col;
 leaf_col = dark_mode ? "#48ff76" : "#0085fa"; // DARK: green, LIGHT: blue
+label_holder_opacity = "0.3";
 
 // var circle_data = [[width / 2, height / 2]];
 var circle_data = [];
@@ -106,7 +109,7 @@ const circles = wiring_diagram
 var pack = d3
   .pack()
   .size([width, height - wd_canvas_space])
-  .padding(10);
+  .padding(padding);
 
 function Pack(data) {
   const root = pack(
@@ -158,7 +161,7 @@ function Pack(data) {
   label.attr("data-scale_factor", function (d) {
     text_bbox = this.getBBox(); // bounding client rect misbehaves
     factor = fit_label_to_diameter(d, text_bbox);
-    return factor > -0.2 ? "1.0" : 1.0 - factor;
+    return factor > -scaling_threshold ? "1.0" : 1.0 - factor;
   });
   label
     .attr("style", function (d) {
@@ -194,7 +197,7 @@ function Pack(data) {
       var is_par = d3.select(this.parentNode).classed("parental");
       return is_par ? bg_col : "none";
     })
-    .attr("fill-opacity", "0.6")
+    .attr("fill-opacity", label_holder_opacity)
     .attr("width", function (holder) {
       return d3.select(this.parentNode).select("text").attr("data-width");
     })
@@ -210,7 +213,6 @@ function Pack(data) {
 }
 
 function fit_label_to_diameter(node, bbox) {
-  scaling_threshold = 0.2; // ignore anything below this
   diameter = node.r * 2;
   tightening_factor = (bbox.width - diameter) / diameter;
   // console.log(`Computed a scaling factor of ${tightening_factor}`, node, bbox);
@@ -227,7 +229,7 @@ var promised = d3.json("wd_sample_data.json").then(
   function (failed) {
     console.debug("Fetch failed, falling back to stored JSON string");
     data = JSON.parse(
-      '{"name":"module.py","children":[{"name":"bar()","children": [{"name": "x = 1", "value": 1}]},{"name":"Foo","children":[{"name":"a(self, x, y)","value":3},{"name":"b(self, x)","children":[{"name": "c = x in self.v", "value":2},{"name": "not c", "value":1}]},{"name":"c(cls, x)","value":2},{"name":"d(self)","value":1}]}]}'
+      '{"name":"module.py","children":[{"name":"bar()","children":[{"name":"x=1","value":1}]},{"name":"Foo","children":[{"name":"sum(self, x, y)","children":[{"name":"x + y","value":3}]},{"name":"__init__(self, x, y)","children":[{"name":"self.x = x","value":1},{"name":"self.y = y","value":1}]},{"name":"from_xy(cls, xy)","children":[{"name":"cls(*xy)","value":2}]},{"name":"xsq(self)","children":[{"name":"self.x ** 2","value":1}]}]}]}'
     );
     Pack(data);
   }
