@@ -64,9 +64,10 @@ const zoom = d3
 
 function zoomed({ transform }) {
   view.attr("transform", transform);
-  wiring_diagram.attr("transform", transform);
   gX.call(xAxis.scale(transform.rescaleX(x)));
   gY.call(yAxis.scale(transform.rescaleY(y)));
+  transform.y += wd_y_offset;
+  wiring_diagram.attr("transform", transform);
 }
 
 function reset() {
