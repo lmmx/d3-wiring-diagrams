@@ -1,8 +1,9 @@
-height = 500;
-width = 1000;
+height = 750;
+width = 1500;
 r = 100;
 wd_canvas_space = 50;
 wd_y_offset = 20;
+label_y_offset = 5; // guessed based on performance
 
 // var circle_data = [[width / 2, height / 2]];
 var circle_data = [];
@@ -98,12 +99,6 @@ var pack = d3
   .size([width, height - wd_canvas_space])
   .padding(10);
 
-function computed_radius(node) {
-  // Uncommenting the ternary operator shrinks with depth
-  // return node.depth ? node.r / node.depth : node.r;
-  return node.r;
-}
-
 function Pack(data) {
   const root = pack(
     d3
@@ -123,8 +118,7 @@ function Pack(data) {
   node
     .append("circle")
     .attr("r", function (d) {
-      // console.debug("r", d.r, computed_radius(d));
-      return computed_radius(d);
+      return d.r;
     })
     .attr("class", function (d) {
       return d.height ? "parent" : "leaf";
@@ -175,9 +169,7 @@ function Pack(data) {
     downscale_factor = fit_label_to_diameter(d, text_bbox);
     var x_shift = -(text_width / 2); // * downscale_factor;
     var depth_direction = d.depth ? -1 : 1; // module name goes below
-    var y_shift = d.children
-      ? depth_direction * computed_radius(d)
-      : text_height / 4; // * downscale_factor;
+    var y_shift = d.children ? depth_direction * d.r : text_height / 4; // * downscale_factor;
     var data_transform = [x_shift, y_shift];
     return data_transform;
   });
@@ -191,6 +183,7 @@ function Pack(data) {
       var is_par = d3.select(this.parentNode).classed("parental");
       return is_par ? "white" : "none";
     })
+    .attr("fill-opacity", "0.6")
     .attr("width", function (holder) {
       return d3.select(this.parentNode).select("text").attr("data-width");
     })
@@ -200,14 +193,14 @@ function Pack(data) {
     .attr("transform", function (holder) {
       label = d3.select(this.parentNode).select("text");
       [x_shift, y_shift] = label.attr("data-transform").split(",");
-      y_shift = parseFloat(y_shift) - wd_y_offset;
+      y_shift = parseFloat(y_shift) - wd_y_offset - label_y_offset;
       return `translate(${x_shift},${y_shift})`;
     });
 }
 
 function fit_label_to_diameter(node, bbox) {
   scaling_threshold = 0.2; // ignore anything below this
-  diameter = computed_radius(node) * 2;
+  diameter = node.r * 2;
   tightening_factor = (bbox.width - diameter) / diameter;
   // console.log(`Computed a scaling factor of ${tightening_factor}`, node, bbox);
   return tightening_factor;
@@ -223,7 +216,7 @@ var promised = d3.json("wd_sample_data.json").then(
   function (failed) {
     console.debug("Fetch failed, falling back to stored JSON string");
     data = JSON.parse(
-      '{"name":"module.py","children":[{"name":"bar()","value":1},{"name":"Foo","children":[{"name":"a(self, x, y)","value":3},{"name":"b(self, x)","value":2},{"name":"c(cls, x)","value":2},{"name":"d(self)","value":1}]}]}'
+      '{"name":"module.py","children":[{"name":"bar()","children": [{"name": "x = 1", "value": 1}]},{"name":"Foo","children":[{"name":"a(self, x, y)","value":3},{"name":"b(self, x)","children":[{"name": "c = x in self.v", "value":2},{"name": "not c", "value":1}]},{"name":"c(cls, x)","value":2},{"name":"d(self)","value":1}]}]}'
     );
     Pack(data);
   }
