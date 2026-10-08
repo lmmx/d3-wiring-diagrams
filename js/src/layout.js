@@ -164,7 +164,7 @@ function placeStars(start, radii, starsOn, outerOn, outerAngles) {
       for (let j = i + 1; j < n; j++) {
         let dx = xs[j] - xs[i];
         let dy = ys[j] - ys[i];
-        let d = Math.hypot(dx, dy);
+        let d = Math.sqrt(dx * dx + dy * dy);
         if (d < 1e-9) {
           // coincident: separate along a direction fixed by the indices
           const a = (i * 2.399963 + j) % TAU;
@@ -192,7 +192,7 @@ function placeStars(start, radii, starsOn, outerOn, outerAngles) {
       fy[i] -= 0.01 * ys[i];
     }
     for (let i = 0; i < n; i++) {
-      const step = Math.hypot(fx[i], fy[i]);
+      const step = Math.sqrt(fx[i] * fx[i] + fy[i] * fy[i]);
       const scale = step > 0.05 ? 0.05 / step : 1;
       xs[i] += alpha * scale * fx[i];
       ys[i] += alpha * scale * fy[i];
@@ -210,7 +210,7 @@ function separate(/** @type {Float64Array} */ xs, /** @type {Float64Array} */ ys
     for (let j = i + 1; j < n; j++) {
       const dx = xs[j] - xs[i];
       const dy = ys[j] - ys[i];
-      const d = Math.hypot(dx, dy) || 1e-9;
+      const d = Math.sqrt(dx * dx + dy * dy) || 1e-9; // (Math.hypot is slow in hot loops)
       const overlap = radii[i] + radii[j] + GAP - d;
       if (overlap > 0) {
         const ux = dx / d;
@@ -224,7 +224,7 @@ function separate(/** @type {Float64Array} */ xs, /** @type {Float64Array} */ ys
   }
   for (let i = 0; i < n; i++) {
     const limit = Math.max(0, 1 - radii[i] - MARGIN);
-    const d = Math.hypot(xs[i], ys[i]);
+    const d = Math.sqrt(xs[i] * xs[i] + ys[i] * ys[i]);
     if (d > limit) {
       xs[i] *= limit / d;
       ys[i] *= limit / d;

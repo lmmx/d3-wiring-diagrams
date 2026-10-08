@@ -95,8 +95,13 @@ class Relation:
     def full(cls, star: Star, domains: Domains) -> Relation:
         return cls(star, itertools.product(*(_domain(domains, t) for t in star.types)))
 
+    def sorted_rows(self) -> list[Row]:
+        """The rows in a fixed order (see :meth:`to_json`), independent of hash seeds."""
+        return sorted(self.rows, key=_row_key)
+
     def records(self) -> list[dict[str, Hashable]]:
-        return [dict(zip(self.star.names, r, strict=True)) for r in self.rows]
+        """``{wire: value}`` for each row, in the order of :meth:`sorted_rows`."""
+        return [dict(zip(self.star.names, r, strict=True)) for r in self.sorted_rows()]
 
     def to_json(self) -> dict[str, Any]:
         """``{"wires": [...], "rows": [[...], ...]}`` with rows in a fixed order.
@@ -104,7 +109,7 @@ class Relation:
         JSON scalars are ordered booleans < numbers < strings < null, then by value.
         Any other Python value has no JSON form.
         """
-        return {"wires": list(self.star.names), "rows": sorted(map(list, self.rows), key=_row_key)}
+        return {"wires": list(self.star.names), "rows": [list(r) for r in self.sorted_rows()]}
 
     @classmethod
     def from_json(cls, star: Star, data: Any) -> Relation:
@@ -147,9 +152,21 @@ class Relation:
         return f"Relation({self.star!r}, {len(self.rows)} rows)"
 
 
-def _row_key(row: list[Any]) -> list[tuple[int, Any]]:
-    rank = {bool: 0, int: 1, float: 1, str: 2, type(None): 3}
-    return [(rank[type(v)], 0 if v is None else v) for v in row]
+def _scalar_key(v: Any) -> tuple[int, Any]:
+    """Booleans < numbers < strings < None < anything else (by type name and repr)."""
+    if isinstance(v, bool):
+        return (0, v)
+    if isinstance(v, int | float):
+        return (1, v)
+    if isinstance(v, str):
+        return (2, v)
+    if v is None:
+        return (3, 0)
+    return (4, f"{type(v).__qualname__}:{v!r}")
+
+
+def _row_key(row: Sequence[Any]) -> list[tuple[int, Any]]:
+    return [_scalar_key(v) for v in row]
 
 
 def _domain(domains: Domains | None, typ: str) -> Collection[Hashable]:

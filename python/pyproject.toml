@@ -8,7 +8,7 @@ authors = [{ name = "Louis Maddox", email = "louismmx@gmail.com" }]
 dependencies = []
 
 [dependency-groups]
-dev = ["pytest>=8", "hypothesis>=6.100", "mypy>=1.10", "ruff>=0.6"]
+dev = ["pytest>=8", "hypothesis>=6.100", "jsonschema>=4.20", "mypy>=1.10", "ruff>=0.6"]
 
 [build-system]
 requires = ["hatchling>=1.25"]

@@ -56,7 +56,7 @@ export function buildScene(input, { nested = true } = {}) {
     for (const w of out.wires) w.group = groups.find(w.group);
     for (const d of out.dots) d.group = groups.find(d.group);
   } else {
-    const flat = new Term(term.evaluate(), null, term.leafLabels(), term.label);
+    const flat = new Term(term.evaluate(), undefined, term.leafLabels(), term.label);
     drawLevel(flat, { x: 0, y: 0, s: 1 }, "f", 0, undefined, { leaf: 0 }, out, groups, types);
   }
   out.types = [...types].sort(compareCodePoints);

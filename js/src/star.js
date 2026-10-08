@@ -16,7 +16,7 @@ export class Star {
    *   an object `{name: type}` or `[name, type]` pairs
    */
   constructor(wires) {
-    const pairs = Symbol.iterator in Object(wires) ? [...wires] : Object.entries(wires);
+    const pairs = isIterable(wires) ? [...wires] : Object.entries(wires);
     pairs.sort((a, b) => compareCodePoints(a[0], b[0]));
     for (let i = 1; i < pairs.length; i++) {
       if (pairs[i][0] === pairs[i - 1][0]) {
@@ -44,7 +44,7 @@ export class Star {
 
   /** A star of the singly-typed operad S: every wire has type `type`. */
   static untyped(/** @type {Iterable<string>} */ names, type = "*") {
-    return new Star([...names].map((n) => [n, type]));
+    return new Star([...names].map((n) => /** @type {[string, string]} */ ([n, type])));
   }
 
   get size() {
@@ -102,6 +102,15 @@ export class Star {
     }
     return new Star(/** @type {Record<string, string>} */ (data));
   }
+}
+
+/**
+ * @template T
+ * @param {Record<string, T> | Iterable<[string, T]>} x
+ * @returns {x is Iterable<[string, T]>}
+ */
+export function isIterable(x) {
+  return Symbol.iterator in Object(x);
 }
 
 /** @returns {data is Record<string, unknown>} */

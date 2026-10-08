@@ -8,9 +8,12 @@
     "./layout": "./src/layout.js",
     "./render": "./src/render.js"
   },
-  "files": ["src"],
+  "files": [
+    "src"
+  ],
   "scripts": {
-    "test": "node --test \"test/*.test.js\""
+    "test": "node --test \"test/*.test.js\"",
+    "check": "tsc -p jsconfig.json"
   },
   "engines": {
     "node": ">=20"
@@ -20,5 +23,13 @@
     "type": "git",
     "url": "https://github.com/lmmx/d3-wiring-diagrams"
   },
-  "keywords": ["operad", "wiring-diagrams", "category-theory", "d3"]
+  "keywords": [
+    "operad",
+    "wiring-diagrams",
+    "category-theory",
+    "d3"
+  ],
+  "devDependencies": {
+    "typescript": "5.6.3"
+  }
 }

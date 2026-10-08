@@ -254,3 +254,9 @@ def test_eq_connects_through_cables() -> None:
     delta = eq.Partition.discrete(two)
     assert eq.apply(psi, [m, delta]) == delta
     assert eq.apply(psi, [m, m]) == m
+
+
+def test_records_have_a_fixed_order_for_any_hashable_values() -> None:
+    x = Star({"a": "T"})
+    r = Relation(x, [((1, 2),), ("s",), (None,), (True,), (3,), (frozenset(),)])
+    assert [rec["a"] for rec in r.records()] == [True, 3, "s", None, frozenset(), (1, 2)]

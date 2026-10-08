@@ -1,0 +1,81 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/lmmx/d3-wiring-diagrams/spec/schema/wiring-diagrams.schema.json",
+  "title": "Wiring diagram interchange format",
+  "description": "Shared by the Python, Rust and JS implementations; see docs/format.md. Validates shape only: cable indices must also be < len(cables), which a schema cannot express.",
+  "$defs": {
+    "name": { "type": "string", "description": "A wire name or a type name." },
+    "star": {
+      "description": "A typed star (X, τ): wire name -> type name.",
+      "type": "object",
+      "additionalProperties": { "$ref": "#/$defs/name" }
+    },
+    "wiring": {
+      "description": "Wire name -> index of the cable it is soldered onto.",
+      "type": "object",
+      "additionalProperties": { "type": "integer", "minimum": 0 }
+    },
+    "diagram": {
+      "description": "A cospan X₁ ⊔ … ⊔ Xₙ → C ← Y. The type of each wire is the type of its cable.",
+      "type": "object",
+      "required": ["cables", "inner", "outer"],
+      "additionalProperties": false,
+      "properties": {
+        "cables": { "type": "array", "items": { "$ref": "#/$defs/name" }, "description": "σ: the type of each cable" },
+        "inner": { "type": "array", "items": { "$ref": "#/$defs/wiring" }, "description": "f, one wiring per inner star" },
+        "outer": { "$ref": "#/$defs/wiring", "description": "g" }
+      }
+    },
+    "term": {
+      "description": "A diagram whose inner stars may be filled with sub-terms (null leaves a star open). Labels are presentation only.",
+      "type": "object",
+      "required": ["diagram"],
+      "additionalProperties": false,
+      "properties": {
+        "diagram": { "$ref": "#/$defs/diagram" },
+        "children": { "type": "array", "items": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/term" }] } },
+        "labels": { "type": "array", "items": { "type": ["string", "null"] } },
+        "label": { "type": ["string", "null"] }
+      }
+    },
+    "scalar": { "type": ["string", "integer", "boolean", "null"] },
+    "relation": {
+      "description": "A finite relation: rows of values, one per wire, wires in code point order.",
+      "type": "object",
+      "required": ["wires", "rows"],
+      "additionalProperties": false,
+      "properties": {
+        "wires": { "type": "array", "items": { "$ref": "#/$defs/name" } },
+        "rows": { "type": "array", "items": { "type": "array", "items": { "$ref": "#/$defs/scalar" } } }
+      }
+    },
+    "domains": {
+      "description": "Type name -> its finite set of values, for the cables Rel must enumerate.",
+      "type": "object",
+      "additionalProperties": { "type": "array", "items": { "$ref": "#/$defs/scalar" } }
+    },
+    "example": {
+      "type": "object",
+      "required": ["title", "source", "description", "term"],
+      "additionalProperties": false,
+      "properties": {
+        "title": { "type": "string" },
+        "source": { "type": "string" },
+        "description": { "type": "string" },
+        "term": { "$ref": "#/$defs/term" },
+        "algebra": {
+          "type": "object",
+          "required": ["kind", "domains", "relations", "expected"],
+          "additionalProperties": false,
+          "properties": {
+            "kind": { "enum": ["rel", "rel_recursive"] },
+            "domains": { "$ref": "#/$defs/domains" },
+            "relations": { "type": "array", "items": { "$ref": "#/$defs/relation" }, "description": "one per leaf of the term, in order" },
+            "expected": { "$ref": "#/$defs/relation" }
+          }
+        }
+      }
+    }
+  },
+  "oneOf": [{ "$ref": "#/$defs/example" }, { "$ref": "#/$defs/term" }, { "$ref": "#/$defs/diagram" }]
+}

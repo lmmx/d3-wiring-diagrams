@@ -16,7 +16,7 @@
 
 import { WiringError } from "./errors.js";
 import { compareCodePoints } from "./order.js";
-import { Star, isPlainObject } from "./star.js";
+import { Star, isIterable, isPlainObject } from "./star.js";
 import { UnionFind } from "./union-find.js";
 
 const UNSEEN = 0xffffffff;
@@ -24,8 +24,17 @@ const UNSEEN = 0xffffffff;
 const PARTS = Symbol("parts");
 
 export class WiringDiagram {
+  /** @type {readonly string[]} `σ`, the type of each cable */
+  cables;
+  /** @type {readonly Star[]} the inner stars `X₁, …, Xₙ` */
+  inner;
+  /** @type {Star} the outer star `Y` */
+  outer;
+  /** @type {Uint32Array} */
   #offsets;
+  /** @type {Uint32Array} */
   #innerCables;
+  /** @type {Uint32Array} */
   #outerCables;
 
   /**
@@ -35,30 +44,26 @@ export class WiringDiagram {
    * @param {Record<string, number> | Iterable<[string, number]>} outer `{wire: cable}` (`g`)
    */
   constructor(cables, inner, outer) {
-    if (cables === PARTS) {
-      this.#install(/** @type {Parts} */ (/** @type {unknown} */ (inner)));
-      return;
+    /** @type {Parts} */
+    let p;
+    if (/** @type {unknown} */ (cables) === PARTS) {
+      p = /** @type {Parts} */ (/** @type {unknown} */ (inner));
+    } else {
+      const types = [...cables];
+      /** @type {Star[]} */
+      const stars = [];
+      /** @type {number[]} */
+      const raw = [];
+      inner.forEach((w, i) => {
+        const [star, cs] = wiring(types, `inner star ${i}`, w);
+        stars.push(star);
+        for (const c of cs) raw.push(c);
+      });
+      const [outerStar, outerRaw] = wiring(types, "outer", outer);
+      p = canonical(types, stars, raw, outerStar, outerRaw, Array.from(types, (_, c) => c));
     }
-    const types = [...cables];
-    const stars = [];
-    const raw = [];
-    inner.forEach((w, i) => {
-      const [star, cs] = wiring(types, `inner star ${i}`, w);
-      stars.push(star);
-      for (const c of cs) raw.push(c);
-    });
-    const [outerStar, outerRaw] = wiring(types, "outer", outer);
-    const all = Array.from(types, (_, c) => c);
-    this.#install(canonical(types, stars, raw, outerStar, outerRaw, all));
-  }
-
-  /** @param {Parts} p */
-  #install(p) {
-    /** @type {readonly string[]} `σ`, the type of each cable */
     this.cables = Object.freeze([...p.cables]);
-    /** @type {readonly Star[]} the inner stars `X₁, …, Xₙ` */
     this.inner = Object.freeze([...p.inner]);
-    /** @type {Star} the outer star `Y` */
     this.outer = p.outer;
     this.#offsets = p.offsets;
     this.#innerCables = p.innerCables;
@@ -66,7 +71,7 @@ export class WiringDiagram {
     Object.freeze(this);
   }
 
-  /** @param {Parts} parts */
+  /** Construct from parts that are already canonical. @param {Parts} parts */
   static #make(parts) {
     return new WiringDiagram(/** @type {any} */ (PARTS), /** @type {any} */ (parts), {});
   }
@@ -162,6 +167,7 @@ export class WiringDiagram {
    */
   #substitute(slots) {
     const types = [...this.cables];
+    /** @type {number[]} */
     const base = [];
     slots.forEach((child, i) => {
       if (child === null) {
@@ -187,7 +193,9 @@ export class WiringDiagram {
     });
     const root = uf.roots();
 
+    /** @type {Star[]} */
     const stars = [];
+    /** @type {number[]} */
     const raw = [];
     slots.forEach((child, i) => {
       if (child === null) {
@@ -306,7 +314,7 @@ function wiring(
   /** @type {string} */ where,
   /** @type {Record<string, number> | Iterable<[string, number]>} */ w,
 ) {
-  const pairs = Symbol.iterator in Object(w) ? [.../** @type {Iterable<[string, number]>} */ (w)] : Object.entries(w);
+  const pairs = isIterable(w) ? [...w] : Object.entries(w);
   pairs.sort((a, b) => compareCodePoints(a[0], b[0]));
   const k = types.length;
   for (let i = 0; i < pairs.length; i++) {
