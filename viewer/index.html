@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Wiring diagrams</title>
+    <meta name="description" content="Spivak's operad of wiring diagrams: nested and composed diagrams, with the relational algebra computed live." />
+    <link rel="stylesheet" href="viewer.css" />
+    <script src="vendor/d3.v7.6.1.min.js"></script>
+    <script type="module" src="viewer.js"></script>
+  </head>
+  <body>
+    <header class="bar">
+      <h1>Wiring diagrams</h1>
+      <label class="field">
+        <span class="visually-hidden">Example</span>
+        <select id="example"></select>
+      </label>
+      <div class="segmented" role="group" aria-label="View">
+        <button type="button" id="view-nested" aria-pressed="true" title="Each sub-term drawn inside the star it fills">Nested</button>
+        <button type="button" id="view-flat" aria-pressed="false" title="The composite diagram: intermediate stars removed">Composed</button>
+      </div>
+      <label class="check"><input type="checkbox" id="labels" checked /> wire names</label>
+      <button type="button" id="reset-zoom" class="quiet">Reset zoom</button>
+      <label class="quiet file">
+        Open JSON…
+        <input type="file" id="file" accept=".json,application/json" />
+      </label>
+    </header>
+
+    <main>
+      <section class="canvas" aria-label="Diagram">
+        <svg id="diagram"></svg>
+        <div id="tooltip" class="tooltip" hidden></div>
+        <p class="hint">Scroll to zoom, drag to pan. Hover a cable to see everything the composition glues to it. Click a star to see its relation.</p>
+      </section>
+
+      <aside class="panel">
+        <p class="source" id="source"></p>
+        <h2 id="title"></h2>
+        <p id="description"></p>
+
+        <dl class="facts" id="facts"></dl>
+        <ul class="legend" id="legend"></ul>
+
+        <section id="algebra" hidden>
+          <h3 id="algebra-title">Rel</h3>
+          <p class="muted" id="algebra-caption"></p>
+          <div id="relation"></div>
+        </section>
+        <p class="error" id="error" hidden></p>
+      </aside>
+    </main>
+  </body>
+</html>
