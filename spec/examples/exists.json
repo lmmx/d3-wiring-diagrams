@@ -1,0 +1,38 @@
+{
+ "title": "y. ∃x. R(x)",
+ "source": "Spivak, Example 4.2.2",
+ "description": "The outer wire y is soldered onto a cable that no inner wire touches, so it ranges over its whole domain. The answer is all of S if R is non-empty and nothing otherwise. The output is not a projection of R, so this query is not conjunctive.",
+ "term": {
+  "diagram": {
+   "cables": ["S", "S"],
+   "inner": [
+    {"x": 0}
+   ],
+   "outer": {"y": 1}
+  },
+  "labels": ["R"],
+  "label": "∃"
+ },
+ "algebra": {
+  "kind": "rel",
+  "domains": {
+   "S": ["s₁", "s₂", "s₃"]
+  },
+  "relations": [
+   {
+    "wires": ["x"],
+    "rows": [
+     ["s₂"]
+    ]
+   }
+  ],
+  "expected": {
+   "wires": ["y"],
+   "rows": [
+    ["s₁"],
+    ["s₂"],
+    ["s₃"]
+   ]
+  }
+ }
+}

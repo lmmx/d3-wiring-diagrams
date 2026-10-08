@@ -1,0 +1,40 @@
+{
+ "title": "NOT from NAND",
+ "source": "Spivak, Example 2.2.11",
+ "description": "Soldering both inputs of a NAND gate onto one cable gives NOT. Rel(φ)(NAND) is the NOT relation.",
+ "term": {
+  "diagram": {
+   "cables": ["Bool", "Bool"],
+   "inner": [
+    {"A": 0, "B": 0, "out": 1}
+   ],
+   "outer": {"in": 0, "out": 1}
+  },
+  "labels": ["NAND"],
+  "label": "NOT"
+ },
+ "algebra": {
+  "kind": "rel",
+  "domains": {
+   "Bool": [false, true]
+  },
+  "relations": [
+   {
+    "wires": ["A", "B", "out"],
+    "rows": [
+     [false, false, true],
+     [false, true, true],
+     [true, false, true],
+     [true, true, false]
+    ]
+   }
+  ],
+  "expected": {
+   "wires": ["in", "out"],
+   "rows": [
+    [false, true],
+    [true, false]
+   ]
+  }
+ }
+}
