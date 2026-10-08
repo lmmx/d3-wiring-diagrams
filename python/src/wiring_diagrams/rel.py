@@ -191,6 +191,9 @@ def apply(
             return Relation(phi.outer, ())
 
     cols, rows = _join_all(tables, set(outer))
+    if not rows:
+        # the join may stop early, before every output cable has a column
+        return Relation(phi.outer, ())
     pos = {c: j for j, c in enumerate(cols)}
     return Relation(phi.outer, {tuple(r[pos[c]] for c in outer) for r in rows})
 
