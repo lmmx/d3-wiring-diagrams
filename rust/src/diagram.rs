@@ -10,6 +10,7 @@
 //! by first appearance, scanning the inner stars in order and then the outer
 //! star; cables soldered to no wire ("floating") come last, sorted by type.
 
+use std::collections::HashSet;
 use std::fmt;
 use std::ops::Range;
 
@@ -48,13 +49,18 @@ impl WiringDiagram {
         outer: impl IntoIterator<Item = (M, usize)>,
     ) -> Result<Self>
     where
-        T: Into<Label>,
-        N: Into<Label>,
-        M: Into<Label>,
+        T: AsRef<str>,
+        N: AsRef<str>,
+        M: AsRef<str>,
         I: IntoIterator,
         I::Item: IntoIterator<Item = (N, usize)>,
     {
-        let types: Vec<Label> = cables.into_iter().map(Into::into).collect();
+        // Equal strings share one allocation: diagrams repeat type and wire names a lot.
+        let mut interner = Interner::default();
+        let types: Vec<Label> = cables
+            .into_iter()
+            .map(|t| interner.get(t.as_ref()))
+            .collect();
         let k = types.len();
         if u32::try_from(k).is_err() {
             return Err(Error::new(
@@ -64,14 +70,21 @@ impl WiringDiagram {
         }
         let mut stars = Vec::new();
         let mut raw = Vec::new();
+        let mut pairs = Vec::new();
         for (i, w) in inner.into_iter().enumerate() {
-            let pairs = w.into_iter().map(|(n, c)| (n.into(), c)).collect();
-            let (star, cs) = wiring(&types, &format!("inner star {i}"), pairs)?;
+            pairs.clear();
+            pairs.extend(w.into_iter().map(|(n, c)| (interner.get(n.as_ref()), c)));
+            let star = wiring(&types, Side::Inner(i), &mut pairs, &mut raw)?;
             stars.push(star);
-            raw.extend(cs);
         }
-        let pairs = outer.into_iter().map(|(n, c)| (n.into(), c)).collect();
-        let (outer, outer_raw) = wiring(&types, "outer", pairs)?;
+        pairs.clear();
+        pairs.extend(
+            outer
+                .into_iter()
+                .map(|(n, c)| (interner.get(n.as_ref()), c)),
+        );
+        let mut outer_raw = Vec::with_capacity(pairs.len());
+        let outer = wiring(&types, Side::Outer, &mut pairs, &mut outer_raw)?;
         let refs: Vec<&Label> = types.iter().collect();
         Ok(canonical(
             &refs,
@@ -162,20 +175,53 @@ impl WiringDiagram {
                 ),
             ));
         }
+        let slots: Vec<Option<&WiringDiagram>> = children.iter().map(Some).collect();
+        self.substitute(&slots)
+    }
+
+    /// Partial composition `self ∘ᵢ child`: substitute into inner star `i` only.
+    ///
+    /// Equal to `compose` with identities in every other slot, but O(size of
+    /// `self` + size of `child`): the other inner stars are carried over
+    /// without building identity diagrams.
+    ///
+    /// # Errors
+    /// [`ErrorKind::ArityMismatch`] if `i` is out of range, and
+    /// [`ErrorKind::StarMismatch`] if `child.outer() != self.inner()[i]`.
+    pub fn compose_at(&self, i: usize, child: &WiringDiagram) -> Result<Self> {
+        if i >= self.arity() {
+            return Err(Error::new(
+                ErrorKind::ArityMismatch,
+                format!("no inner star {i} in a diagram of arity {}", self.arity()),
+            ));
+        }
+        let mut slots = vec![None; self.arity()];
+        slots[i] = Some(child);
+        self.substitute(&slots)
+    }
+
+    /// The pushout behind both kinds of composition. Slot `i` is either a
+    /// diagram to substitute into `Xᵢ` or `None`, which keeps `Xᵢ` as it is
+    /// (composition with `id_Xᵢ`, without materialising the identity).
+    fn substitute(&self, slots: &[Option<&WiringDiagram>]) -> Result<Self> {
         let mut types: Vec<&Label> = self.cables.iter().collect();
-        let mut base = Vec::with_capacity(children.len());
-        for (i, child) in children.iter().enumerate() {
-            if child.outer != self.inner[i] {
-                return Err(Error::new(
-                    ErrorKind::StarMismatch,
-                    format!(
-                        "inner star {i} is {:?} but child {i} has outer star {:?}",
-                        self.inner[i], child.outer
-                    ),
-                ));
+        let mut base = Vec::with_capacity(slots.len());
+        for (i, slot) in slots.iter().enumerate() {
+            if let Some(child) = slot {
+                if child.outer != self.inner[i] {
+                    return Err(Error::new(
+                        ErrorKind::StarMismatch,
+                        format!(
+                            "inner star {i} is {:?} but child {i} has outer star {:?}",
+                            self.inner[i], child.outer
+                        ),
+                    ));
+                }
+                base.push(types.len() as Cable);
+                types.extend(child.cables.iter());
+            } else {
+                base.push(0);
             }
-            base.push(types.len() as Cable);
-            types.extend(child.cables.iter());
         }
         let total = types.len();
         if u32::try_from(total).is_err() {
@@ -186,23 +232,26 @@ impl WiringDiagram {
         }
 
         let mut uf = UnionFind::new(total);
-        for (i, child) in children.iter().enumerate() {
-            for (&a, &b) in self.inner_cables(i).iter().zip(&child.outer_cables) {
-                uf.union(a, base[i] + b);
+        for (i, slot) in slots.iter().enumerate() {
+            if let Some(child) = slot {
+                for (&a, &b) in self.inner_cables(i).iter().zip(&child.outer_cables) {
+                    uf.union(a, base[i] + b);
+                }
             }
         }
         let root: Vec<Cable> = (0..total as Cable).map(|x| uf.find(x)).collect();
 
-        let mut stars = Vec::with_capacity(children.iter().map(WiringDiagram::arity).sum());
-        let mut raw = Vec::with_capacity(children.iter().map(|c| c.inner_cables.len()).sum());
-        for (i, child) in children.iter().enumerate() {
-            stars.extend(child.inner.iter().cloned());
-            raw.extend(
-                child
-                    .inner_cables
-                    .iter()
-                    .map(|&c| root[(base[i] + c) as usize]),
-            );
+        let mut stars = Vec::new();
+        let mut raw = Vec::new();
+        for (i, slot) in slots.iter().enumerate() {
+            if let Some(child) = slot {
+                stars.extend(child.inner.iter().cloned());
+                let off = base[i];
+                raw.extend(child.inner_cables.iter().map(|&c| root[(off + c) as usize]));
+            } else {
+                stars.push(self.inner[i].clone());
+                raw.extend(self.inner_cables(i).iter().map(|&c| root[c as usize]));
+            }
         }
         let outer_raw: Vec<Cable> = self
             .outer_cables
@@ -218,29 +267,6 @@ impl WiringDiagram {
             &outer_raw,
             classes,
         ))
-    }
-
-    /// Partial composition `self ∘ᵢ child`: substitute into inner star `i` only.
-    ///
-    /// # Errors
-    /// As [`compose`](Self::compose), and [`ErrorKind::ArityMismatch`] if `i` is out of range.
-    pub fn compose_at(&self, i: usize, child: &WiringDiagram) -> Result<Self> {
-        if i >= self.arity() {
-            return Err(Error::new(
-                ErrorKind::ArityMismatch,
-                format!("no inner star {i} in a diagram of arity {}", self.arity()),
-            ));
-        }
-        let children: Vec<Self> = (0..self.arity())
-            .map(|j| {
-                if j == i {
-                    child.clone()
-                } else {
-                    Self::identity(&self.inner[j])
-                }
-            })
-            .collect();
-        self.compose(&children)
     }
 
     /// The symmetric group action: inner star `k` of the result is inner star
@@ -326,31 +352,64 @@ impl WiringDiagram {
     }
 }
 
-/// Validate one star's `(wire, cable)` list and derive the star's types from the cables.
+/// Which star a wiring belongs to, for error messages.
+#[derive(Clone, Copy)]
+enum Side {
+    Inner(usize),
+    Outer,
+}
+
+impl fmt::Display for Side {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Inner(i) => write!(f, "inner star {i}"),
+            Self::Outer => f.write_str("outer"),
+        }
+    }
+}
+
+/// Shares one `Label` between equal strings.
+#[derive(Default)]
+struct Interner(HashSet<Label>);
+
+impl Interner {
+    fn get(&mut self, s: &str) -> Label {
+        if let Some(label) = self.0.get(s) {
+            return label.clone();
+        }
+        let label: Label = s.into();
+        self.0.insert(label.clone());
+        label
+    }
+}
+
+/// Validate one star's `(wire, cable)` list, derive the star's types from the
+/// cables, and append its cables (in canonical wire order) to `raw`.
 fn wiring(
     types: &[Label],
-    where_: &str,
-    mut pairs: Vec<(Label, usize)>,
-) -> Result<(Star, Vec<Cable>)> {
+    side: Side,
+    pairs: &mut [(Label, usize)],
+    raw: &mut Vec<Cable>,
+) -> Result<Star> {
     let k = types.len();
     pairs.sort_unstable_by(|a, b| a.0.cmp(&b.0));
     if let Some(w) = pairs.windows(2).find(|w| w[0].0 == w[1].0) {
         return Err(Error::new(
             ErrorKind::DuplicateWire,
-            format!("{where_} wire {:?} appears twice", w[0].0),
+            format!("{side} wire {:?} appears twice", w[0].0),
         ));
     }
     if let Some((n, c)) = pairs.iter().find(|(_, c)| *c >= k) {
         return Err(Error::new(
             ErrorKind::CableOutOfRange,
-            format!("{where_} wire {n:?} -> cable {c}, but there are {k} cables"),
+            format!("{side} wire {n:?} -> cable {c}, but there are {k} cables"),
         ));
     }
-    let star = Star::from_sorted(
+    raw.extend(pairs.iter().map(|(_, c)| *c as Cable));
+    Ok(Star::from_sorted(
         pairs.iter().map(|(n, _)| n.clone()).collect(),
         pairs.iter().map(|(_, c)| types[*c].clone()).collect(),
-    );
-    Ok((star, pairs.iter().map(|(_, c)| *c as Cable).collect()))
+    ))
 }
 
 /// Relabel raw cable ids by first appearance, then append the floating cables

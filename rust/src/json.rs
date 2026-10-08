@@ -162,7 +162,8 @@ impl WiringDiagram {
     /// # Errors
     /// As [`from_json_value`](Self::from_json_value).
     pub fn from_json(s: &str) -> Result<Self> {
-        Self::from_json_value(serde_json::from_str(s).map_err(|e| invalid(DIAGRAM_SHAPE, e))?)
+        let raw: RawDiagram = serde_json::from_str(s).map_err(|e| invalid(DIAGRAM_SHAPE, e))?;
+        raw.build()
     }
 
     /// The canonical JSON value of this diagram.

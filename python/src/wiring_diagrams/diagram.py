@@ -162,9 +162,35 @@ class WiringDiagram:
                 "arity_mismatch",
                 f"diagram has {self.arity} inner stars but {len(children)} were given",
             )
+        return self._substitute(list(children))
+
+    def compose_at(self, i: int, child: WiringDiagram) -> WiringDiagram:
+        """Partial composition ``self ∘ᵢ child``: substitute into inner star ``i`` only.
+
+        Equal to :meth:`compose` with identities in every other slot. It costs
+        O(size of ``self`` + size of ``child``) because the other inner stars
+        are carried over without building identity diagrams.
+        """
+        if not 0 <= i < self.arity:
+            raise WiringError(
+                "arity_mismatch", f"no inner star {i} in a diagram of arity {self.arity}"
+            )
+        slots: list[WiringDiagram | None] = [None] * self.arity
+        slots[i] = child
+        return self._substitute(slots)
+
+    def _substitute(self, slots: Sequence[WiringDiagram | None]) -> WiringDiagram:
+        """The pushout behind both kinds of composition.
+
+        Slot ``i`` holds a diagram to substitute into ``Xᵢ``, or ``None`` to keep
+        ``Xᵢ`` (composition with ``id_Xᵢ``, without building the identity).
+        """
         types = list(self._cables)
         offsets: list[int] = []
-        for i, child in enumerate(children):
+        for i, child in enumerate(slots):
+            if child is None:
+                offsets.append(0)
+                continue
             if child._outer != self._inner[i]:
                 raise WiringError(
                     "star_mismatch",
@@ -184,7 +210,9 @@ class WiringDiagram:
                 x = parent[x]
             return x
 
-        for i, child in enumerate(children):
+        for i, child in enumerate(slots):
+            if child is None:
+                continue
             off = offsets[i]
             for a, b in zip(self._inner_cables[i], child._outer_cables, strict=True):
                 ra, rb = find(a), find(off + b)
@@ -197,7 +225,11 @@ class WiringDiagram:
         root = [find(x) for x in range(total)]
         inner_stars: list[Star] = []
         inner_raw: list[list[int]] = []
-        for i, child in enumerate(children):
+        for i, child in enumerate(slots):
+            if child is None:
+                inner_stars.append(self._inner[i])
+                inner_raw.append([root[c] for c in self._inner_cables[i]])
+                continue
             off = offsets[i]
             for star, cs in zip(child._inner, child._inner_cables, strict=True):
                 inner_stars.append(star)
@@ -205,17 +237,6 @@ class WiringDiagram:
         outer_raw = [root[c] for c in self._outer_cables]
         classes = (x for x in range(total) if root[x] == x)
         return _make(*_canonical(types, inner_stars, inner_raw, self._outer, outer_raw, classes))
-
-    def compose_at(self, i: int, child: WiringDiagram) -> WiringDiagram:
-        """Partial composition ``self ∘ᵢ child``: substitute into inner star ``i`` only."""
-        if not 0 <= i < self.arity:
-            raise WiringError(
-                "arity_mismatch",
-                f"no inner star {i} in a diagram of arity {self.arity}",
-            )
-        children = [WiringDiagram.identity(x) for x in self._inner]
-        children[i] = child
-        return self.compose(children)
 
     def permute(self, sigma: Sequence[int]) -> WiringDiagram:
         """The symmetric group action: the result's inner star ``k`` is ``self``'s ``sigma[k]``.

@@ -168,9 +168,12 @@ fn domain<'d, V>(domains: &'d Domains<V>, ty: &str) -> Result<&'d [V]> {
     })
 }
 
+/// An intermediate result: one column per cable in `cols`. `rows` never
+/// contains duplicates. Each constructor below keeps that invariant, so
+/// joins need no deduplication; only projection does.
 struct Table<V> {
     cols: Vec<Cable>,
-    rows: HashSet<Box<[V]>>,
+    rows: Vec<Box<[V]>>,
 }
 
 /// `Rel(φ)(R₁, …, Rₙ)`, the φ-conjunction of the relations.
@@ -217,9 +220,13 @@ pub fn apply<V: Clone + Ord + Hash>(
     for &c in phi.outer_cables() {
         if !constrained[c as usize] {
             let dom = domain(domains, &phi.cables()[c as usize])?;
+            let distinct: BTreeSet<&V> = dom.iter().collect();
             tables.push(Table {
                 cols: vec![c],
-                rows: dom.iter().map(|v| Box::from([v.clone()])).collect(),
+                rows: distinct
+                    .into_iter()
+                    .map(|v| Box::from([v.clone()]))
+                    .collect(),
             });
             constrained[c as usize] = true;
         }
@@ -255,6 +262,10 @@ pub fn apply<V: Clone + Ord + Hash>(
 }
 
 /// Turn a relation on `Xᵢ` into a table over its distinct cables.
+///
+/// Rows where two wires on one cable disagree are dropped. Every dropped
+/// column equals a kept one, so the projection is injective and the result
+/// has no duplicates.
 fn select<V: Clone + Eq + Hash>(wiring: &[Cable], rows: &BTreeSet<Box<[V]>>) -> Table<V> {
     let mut cols = Vec::new();
     let mut reps = Vec::new();
@@ -279,7 +290,7 @@ fn join_all<V: Clone + Eq + Hash>(mut remaining: Vec<Table<V>>, keep: &HashSet<C
     remaining.sort_by_key(|t| t.rows.len());
     let mut cur = Table {
         cols: Vec::new(),
-        rows: HashSet::from([Box::from([])]),
+        rows: vec![Box::from([])],
     };
     while !remaining.is_empty() {
         if cur.rows.is_empty() {
@@ -308,6 +319,10 @@ fn join_all<V: Clone + Eq + Hash>(mut remaining: Vec<Table<V>>, keep: &HashSet<C
     cur
 }
 
+/// Natural join on the shared cables. Two distinct pairs of input rows give
+/// distinct output rows, so the output has no duplicates. The index maps
+/// the key of each `b` row to row positions, and probes reuse one key
+/// buffer, so the only allocation per output row is the row itself.
 fn hash_join<V: Clone + Eq + Hash>(a: &Table<V>, b: &Table<V>) -> Table<V> {
     let shared: Vec<Cable> = a
         .cols
@@ -315,32 +330,33 @@ fn hash_join<V: Clone + Eq + Hash>(a: &Table<V>, b: &Table<V>) -> Table<V> {
         .copied()
         .filter(|c| b.cols.contains(c))
         .collect();
-    let a_key: Vec<usize> = shared
-        .iter()
-        .map(|c| a.cols.iter().position(|d| d == c).unwrap())
-        .collect();
-    let b_key: Vec<usize> = shared
-        .iter()
-        .map(|c| b.cols.iter().position(|d| d == c).unwrap())
-        .collect();
+    let position = |cols: &[Cable], c: Cable| cols.iter().position(|&d| d == c).expect("shared");
+    let a_key: Vec<usize> = shared.iter().map(|&c| position(&a.cols, c)).collect();
+    let b_key: Vec<usize> = shared.iter().map(|&c| position(&b.cols, c)).collect();
     let b_rest: Vec<usize> = (0..b.cols.len())
         .filter(|&j| !shared.contains(&b.cols[j]))
         .collect();
-    let mut index: HashMap<Vec<V>, Vec<Vec<V>>> = HashMap::new();
-    for r in &b.rows {
-        let key = b_key.iter().map(|&j| r[j].clone()).collect();
-        index
-            .entry(key)
-            .or_default()
-            .push(b_rest.iter().map(|&j| r[j].clone()).collect());
+
+    let mut index: HashMap<Box<[V]>, Vec<usize>> = HashMap::with_capacity(b.rows.len());
+    for (k, r) in b.rows.iter().enumerate() {
+        let key: Box<[V]> = b_key.iter().map(|&j| r[j].clone()).collect();
+        index.entry(key).or_default().push(k);
     }
-    let mut rows = HashSet::new();
+    let width = a.cols.len() + b_rest.len();
+    let mut rows = Vec::new();
+    let mut key: Vec<V> = Vec::with_capacity(a_key.len());
     for r in &a.rows {
-        let key: Vec<V> = a_key.iter().map(|&j| r[j].clone()).collect();
-        if let Some(tails) = index.get(&key) {
-            for tail in tails {
-                rows.insert(r.iter().chain(tail).cloned().collect());
-            }
+        key.clear();
+        key.extend(a_key.iter().map(|&j| r[j].clone()));
+        let Some(matches) = index.get(key.as_slice()) else {
+            continue;
+        };
+        for &k in matches {
+            let other = &b.rows[k];
+            let mut joined = Vec::with_capacity(width);
+            joined.extend_from_slice(r);
+            joined.extend(b_rest.iter().map(|&j| other[j].clone()));
+            rows.push(joined.into_boxed_slice());
         }
     }
     let cols = a
@@ -352,18 +368,24 @@ fn hash_join<V: Clone + Eq + Hash>(a: &Table<V>, b: &Table<V>) -> Table<V> {
     Table { cols, rows }
 }
 
+/// Keep the columns whose cable is `needed`, removing duplicate rows.
 fn project<V: Clone + Eq + Hash>(t: Table<V>, needed: impl Fn(&Cable) -> bool) -> Table<V> {
     let keep: Vec<usize> = (0..t.cols.len()).filter(|&j| needed(&t.cols[j])).collect();
     if keep.len() == t.cols.len() {
         return t;
     }
+    let mut seen: HashSet<Box<[V]>> = HashSet::with_capacity(t.rows.len());
+    let rows = t
+        .rows
+        .iter()
+        .filter_map(|r| {
+            let p: Box<[V]> = keep.iter().map(|&j| r[j].clone()).collect();
+            seen.insert(p.clone()).then_some(p)
+        })
+        .collect();
     Table {
         cols: keep.iter().map(|&j| t.cols[j]).collect(),
-        rows: t
-            .rows
-            .iter()
-            .map(|r| keep.iter().map(|&j| r[j].clone()).collect())
-            .collect(),
+        rows,
     }
 }
 
