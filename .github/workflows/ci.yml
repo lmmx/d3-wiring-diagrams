@@ -57,3 +57,20 @@ jobs:
       - run: npm ci
       - run: npm run check
       - run: npm test
+
+  site:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: site/package-lock.json
+      - run: npm ci --prefix site
+      # fails on any broken relative link or #anchor in the docs
+      - run: npm run --prefix site build
+      - run: npx playwright install --with-deps chromium
+        working-directory: site
+      # the built site in a real browser: pages, viewer, a playground edit
+      - run: npm run --prefix site smoke

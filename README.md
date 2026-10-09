@@ -40,7 +40,8 @@ The paper's operad and everything it constructs on it:
 python/   pure-Python reference implementation (no dependencies)
 rust/     Rust crate (serde behind the default feature)
 js/       ES modules: the same core + layout.js, scene.js, render.js (d3)
-viewer/   the example viewer (plain HTML/CSS/JS, vendored d3)
+viewer/   the viewer and playground (plain HTML/CSS/JS, vendored d3)
+site/     builds README + docs + viewer into dist/ (deployed by vercel.json)
 spec/     JSON Schema, the paper's examples, and the shared conformance suite
 scripts/  generate.py: writes spec/ from the Python reference
 docs/     theory, format, visualisation, performance, journal
@@ -87,11 +88,23 @@ const phi = new WiringDiagram(["Bool", "Bool"], [{ A: 0, B: 0, out: 1 }], { in: 
 createRenderer(d3, document.querySelector("svg")).draw(phi);
 ```
 
-**Viewer**: `just serve` (or `python3 -m http.server`) at the repository root,
-then open <http://localhost:8000/viewer/>. Switch between the nested and
-composed views, hover a cable to see everything composition glues to it, and
-click a star to see its relation. Diagrams built in Python or Rust open with
-*Open JSON…*.
+**Viewer and playground** ([`viewer/`](viewer/)):
+- Switch between the nested and composed views.
+- Hover a cable to see everything composition glues to it.
+- Click a star to see its relation.
+
+The **Playground** button opens a JSON editor beside the diagram. It accepts
+any example, term or diagram, including `term.to_json()` from Python or
+`serde_json::to_string(&term)` from Rust. You can:
+- plug sub-diagrams from the examples into a star (Spivak's plug-and-play,
+  §5.1), with the relations kept consistent;
+- collapse a sub-diagram back into one star;
+- compose the whole term;
+- share the result as a link.
+
+**Site**: `just site` builds the docs pages, the viewer and the playground into
+`dist/`. `vercel.json` deploys that directory, and every push gets a preview.
+To run it locally, `just serve` and open <http://localhost:8000/viewer/>.
 
 ## Develop
 

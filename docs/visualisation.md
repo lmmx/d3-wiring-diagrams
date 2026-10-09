@@ -115,3 +115,37 @@ the composition formula glues together.
 - **Open JSON…** (or drag and drop) accepts an example file, a term, or a bare
   diagram. That is how to view diagrams built in Python or Rust:
   `json.dump(term.to_json(), f)` / `serde_json::to_writer(f, &term)`.
+
+## Playground
+
+**Playground** in the viewer (or `?edit` in the URL) opens a JSON editor beside
+the diagram. The editing operations live in `viewer/edit.js`. They are pure
+functions on documents in the [interchange format](format.md), tested in Node
+(`js/test/playground.test.js`).
+
+- **Edit the JSON.** The diagram redraws 250 ms after typing stops. A document
+  that does not parse leaves the last good diagram on screen and shows the
+  error, with its kind.
+- **Plug in** (Spivak §5.1, plug-and-play). Select a leaf star and choose any
+  labelled sub-term of the examples whose outer star matches it: OR, AND or
+  XOR into a NAND, for instance. The slot is filled with that term, and the
+  leaf's relation is replaced by the term's leaf relations, so the algebra
+  stays consistent. `expected` is recomputed.
+- **Collapse.** Select an intermediate star and turn its sub-term back into a
+  single leaf. The leaf's relation is the one the sub-term computes, so the
+  outer relation does not change; a test checks this, since it is
+  functoriality.
+- **Compose term** replaces the tree by its composite, keeping the leaf labels.
+- **Share.** The document travels in the URL fragment (`#doc=`,
+  deflate-raw then base64url), so a link reproduces it exactly. **Download**
+  saves it as JSON.
+
+## Site
+
+`site/build.mjs` renders the README and `docs/*.md` with `marked` and copies
+in the viewer, `js/src` and `spec/`. It writes the result to `dist/`, which
+`vercel.json` deploys. The build fails on a relative link or `#anchor` that
+does not resolve. Links to repository files outside the site go to GitHub.
+`site/smoke.mjs` loads the built site in Chromium. It checks every navigation
+link, the viewer's half-adder relation, and a playground plug-in, and fails on
+any console error or failed request. CI runs both.

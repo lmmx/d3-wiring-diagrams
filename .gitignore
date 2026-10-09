@@ -10,3 +10,5 @@ __pycache__/
 target/
 # JS
 node_modules/
+# Site build output
+dist/

@@ -1,6 +1,6 @@
 # Giacometti Journal Format
 
-Note: this document is originally from https://github.com/lmmx/giacometti/docs/JOURNAL.md
+Note: this document is originally from https://github.com/lmmx/giacometti/blob/master/docs/JOURNAL.md
 
 If you are reading this in another repo, it has been copied here to add structure to the
 development journalling in this repo. The 'journal' is markdown files under `docs/journal/`.
