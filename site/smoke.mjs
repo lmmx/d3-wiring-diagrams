@@ -72,6 +72,23 @@ const rows = await page.$$eval("#relation tr", (rs) => rs.slice(1).map((r) => r.
 check(JSON.stringify(rows) === JSON.stringify(["falsefalse", "truetrue"]), "plugging AND into NOT copies its input");
 check((await page.evaluate(() => location.hash)).startsWith("#doc="), "the edited document is in the URL");
 
+// the playground's Python tab: scan code with the library's scanner, in Pyodide
+await page.click("#tab-python");
+await page.fill("#py", "def square(x):\n    return x * x\n\ndef hypot(a, b):\n    return (square(a) + square(b)) ** 0.5\n");
+await page.fill("#py-function", "hypot");
+await page.click("#py-scan");
+await page.waitForFunction(() => document.querySelector("#title")?.textContent === "function hypot (scanned)", null, {
+  timeout: 180_000,
+});
+check((await page.$$("#code:not([hidden])")).length === 1, "a scanned document shows its source");
+await page.waitForTimeout(1000); // let the previous diagram finish fading out
+const nested = await page.$$eval(".wd-star[data-role=intermediate]", (cs) => cs.length);
+check(nested === 2, "with expand=1 both square calls are filled with square's body");
+await page.fill("#py", "def f(:\n");
+await page.click("#py-scan");
+await page.waitForSelector("#py-error:not([hidden])", { timeout: 60_000 });
+check((await page.textContent("#py-error"))?.includes("line 1") === true, "a syntax error names its line");
+
 await browser.close();
 server.close();
 if (problems.length) {

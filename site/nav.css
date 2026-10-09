@@ -1,0 +1,45 @@
+/* The navigation bar shared by the docs pages and the viewer (tokens come from
+   site.css or viewer.css, which both define them). */
+
+.site-bar {
+  border-bottom: 1px solid var(--rule);
+  background: var(--panel);
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.site-bar nav {
+  max-width: 52rem;
+  margin: 0 auto;
+  padding: 0.6rem 1rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 1.1rem;
+  font-size: 0.92rem;
+}
+
+.site-bar a {
+  color: var(--muted);
+  text-decoration: none;
+}
+
+.site-bar a:hover,
+.site-bar a[aria-current="page"] {
+  color: var(--fg);
+}
+
+.site-bar a[aria-current="page"] {
+  font-weight: 600;
+}
+
+.site-bar a:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* the viewer is a full-width app: its bar spans the page */
+.site-bar.wide nav {
+  max-width: none;
+  margin: 0;
+}

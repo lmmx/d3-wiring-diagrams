@@ -136,6 +136,13 @@ functions on documents in the [interchange format](format.md), tested in Node
   outer relation does not change; a test checks this, since it is
   functoriality.
 - **Compose term** replaces the tree by its composite, keeping the leaf labels.
+- **Python code** (the second tab) scans source with `wiring_diagrams.code`
+  ([code.md](code.md)), the library's own scanner, run in the browser by
+  [Pyodide](https://pyodide.org) (`viewer/python.js`). Pyodide is about 10 MB,
+  fetched from jsDelivr on the first scan only. The package's modules are
+  served with the site, so the scan and `python -m wiring_diagrams.code`
+  agree. A test keeps the list of modules in step with the package. Syntax
+  errors are shown with their line.
 - **Share.** The document travels in the URL fragment (`#doc=`,
   deflate-raw then base64url), so a link reproduces it exactly. **Download**
   saves it as JSON.
@@ -143,9 +150,13 @@ functions on documents in the [interchange format](format.md), tested in Node
 ## Site
 
 `site/build.mjs` renders the README and `docs/*.md` with `marked` and copies
-in the viewer, `js/src` and `spec/`. It writes the result to `dist/`, which
+in the viewer, `js/src`, `spec/` and the Python package (for Pyodide). The
+viewer's page carries a marker (`<!-- site-nav: … -->`) where the build puts the
+same navigation bar as the docs pages, so the playground links back to the
+site. The build fails if the marker is missing. It writes the result to `dist/`, which
 `vercel.json` deploys. The build fails on a relative link or `#anchor` that
 does not resolve. Links to repository files outside the site go to GitHub.
 `site/smoke.mjs` loads the built site in Chromium. It checks every navigation
-link, the viewer's half-adder relation, and a playground plug-in, and fails on
-any console error or failed request. CI runs both.
+link, the viewer's half-adder relation, a playground plug-in, and a Python
+scan in Pyodide (including a syntax error's line), and fails on any console
+error or failed request. CI runs both.

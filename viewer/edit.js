@@ -10,7 +10,7 @@ import { Star, Term, rel } from "../js/src/index.js";
 
 /**
  * @typedef {{kind: "rel" | "rel_recursive", domains: rel.Domains, relations: any[], expected: any}} Algebra
- * @typedef {{title: string, source: string, description: string, term: any, algebra?: Algebra}} Doc
+ * @typedef {{title: string, source: string, description: string, term: any, algebra?: Algebra, code?: {language: "python", source: string}}} Doc
  * @typedef {{id: string, label: string, from: string, term: Term, leaves: rel.Relation[] | null, domains: rel.Domains}} Entry
  */
 

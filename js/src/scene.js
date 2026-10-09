@@ -133,7 +133,10 @@ function drawLevel(term, frame, path, depth, outerAngles, counter, out, groups, 
     out.stars.push({ key, role: "leaf", x: cx, y: cy, r: frame.s * s.r, label: term.labels[i], depth: depth + 1, path: childPath, signature: String(phi.inner[i]) });
     const r = frame.s * s.r;
     if (term.labels[i] !== null) {
-      out.labels.push({ key: `${key}:label`, x: cx, y: cy, text: /** @type {string} */ (term.labels[i]), anchor: "middle", size: Math.min(FONT * frame.s, 0.3 * r), role: "star" });
+      const text = /** @type {string} */ (term.labels[i]);
+      // small enough to fit across the middle of the star (≈0.58 em per character)
+      const size = Math.min(FONT * frame.s, 0.28 * r, (0.85 * r) / (0.58 * Math.max(1, text.length)));
+      out.labels.push({ key: `${key}:label`, x: cx, y: cy, text, anchor: "middle", size, role: "star" });
     }
     s.ports.forEach((q) => {
       const [x1, y1] = P(q.x, q.y);
@@ -141,8 +144,9 @@ function drawLevel(term, frame, path, depth, outerAngles, counter, out, groups, 
       const group = `${path}#${q.cable}`;
       groups.add(group);
       out.wires.push({ key: `${key}/${q.name}`, x1, y1, x2, y2, type: q.type, group, star: key, name: q.name });
-      // wire names sit inside the circle, two thirds of the way out from the centre
-      out.labels.push({ key: `${key}/${q.name}:label`, x: cx + 0.66 * r * q.nx, y: cy + 0.66 * r * q.ny, text: q.name, anchor: "middle", size: Math.min(0.8 * FONT * frame.s, 0.24 * r), role: "wire" });
+      // wire names sit inside the circle, near the rim, and grow towards the centre
+      const anchor = q.nx < -0.3 ? "start" : q.nx > 0.3 ? "end" : "middle";
+      out.labels.push({ key: `${key}/${q.name}:label`, x: cx + 0.8 * r * q.nx, y: cy + 0.8 * r * q.ny, text: q.name, anchor, size: Math.min(0.8 * FONT * frame.s, 0.2 * r), role: "wire" });
     });
   });
 

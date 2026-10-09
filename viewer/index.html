@@ -10,6 +10,7 @@
     <script type="module" src="viewer.js"></script>
   </head>
   <body>
+    <!-- site-nav: the site build (site/build.mjs) puts the docs' navigation bar here -->
     <header class="bar">
       <h1><a href="../">Wiring diagrams</a></h1>
       <label class="field">
@@ -31,16 +32,37 @@
 
     <main id="main">
       <section class="editor" id="editor" aria-label="Playground" hidden>
-        <div class="editor-head">
-          <h2>Playground</h2>
+        <div class="tabs" role="tablist" aria-label="Edit as">
+          <button type="button" role="tab" id="tab-json" aria-selected="true" aria-controls="pane-json">JSON</button>
+          <button type="button" role="tab" id="tab-python" aria-selected="false" aria-controls="pane-python">Python code</button>
+        </div>
+
+        <div class="pane" id="pane-json" role="tabpanel" aria-labelledby="tab-json">
           <p class="muted">
             An example, a term or a bare diagram, in the <a href="../docs/format.html">shared JSON format</a>. The
             diagram redraws as you type. Output of <code>term.to_json()</code> (Python) or
             <code>serde_json::to_string(&amp;term)</code> (Rust) pastes straight in.
           </p>
+          <textarea id="doc" spellcheck="false" autocomplete="off" aria-label="Document JSON"></textarea>
+          <p class="error" id="doc-error" role="status" hidden></p>
         </div>
-        <textarea id="doc" spellcheck="false" autocomplete="off" aria-label="Document JSON"></textarea>
-        <p class="error" id="doc-error" role="status" hidden></p>
+
+        <div class="pane" id="pane-python" role="tabpanel" aria-labelledby="tab-python" hidden>
+          <p class="muted">
+            Python source to scan into a wiring diagram, with the library's own scanner
+            (<a href="../docs/code.html">how code maps to diagrams</a>). Leave the function empty to draw the whole
+            module.
+          </p>
+          <textarea id="py" spellcheck="false" autocomplete="off" aria-label="Python source"></textarea>
+          <div class="row">
+            <label>Function <input id="py-function" placeholder="e.g. hypot or Foo.xsq" size="14" /></label>
+            <label>Expand calls <input id="py-expand" type="number" min="0" max="5" value="1" /></label>
+            <button type="button" id="py-scan" class="primary">Scan</button>
+          </div>
+          <p class="muted" id="py-status" role="status"></p>
+          <p class="error" id="py-error" role="status" hidden></p>
+        </div>
+
         <div class="actions">
           <button type="button" id="compose-all" title="Replace the term by its composite (one diagram)">Compose term</button>
           <button type="button" id="download">Download</button>
@@ -62,6 +84,11 @@
 
         <dl class="facts" id="facts"></dl>
         <ul class="legend" id="legend"></ul>
+
+        <details id="code" hidden>
+          <summary>Source code</summary>
+          <pre><code id="code-source"></code></pre>
+        </details>
 
         <section id="algebra" hidden>
           <h3 id="algebra-title">Rel</h3>

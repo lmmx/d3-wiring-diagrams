@@ -20,7 +20,7 @@ const REPO = "https://github.com/lmmx/d3-wiring-diagrams";
 const BRANCH = "master";
 
 /** Copied as they are: what the viewer loads, and the images the docs use. */
-const ASSETS = ["viewer", "js/src", "spec", "docs/img"];
+const ASSETS = ["viewer", "js/src", "spec", "docs/img", "python/src/wiring_diagrams"];
 
 /** Markdown sources (repository paths) → page paths in dist/. */
 const PAGES = new Map([["README.md", "index.html"]]);
@@ -36,6 +36,7 @@ const NAV = [
   ["viewer/?edit", "Playground"],
   ["docs/theory.html", "Theory"],
   ["docs/format.html", "Format"],
+  ["docs/code.html", "Code"],
   ["docs/visualisation.html", "Visualisation"],
   ["docs/performance.html", "Performance"],
   ["docs/journal/index.html", "Journal"],
@@ -128,14 +129,29 @@ function render(source, page) {
   return { title, body };
 }
 
+/**
+ * The site's navigation bar, with links relative to `page`.
+ * @param {string} page @param {string} [extra] additional class
+ */
+function navBar(page, extra = "") {
+  const up = (/** @type {string} */ target) => path.posix.relative(path.posix.dirname(page), target) || ".";
+  const links = NAV.map(([href, label]) => {
+    const [file, query] = href.split("?");
+    const target = file.endsWith("/") ? `${up(file)}/` : up(file);
+    const current = href === page || (file === "viewer/" && page === "viewer/index.html" && !query);
+    return `<a href="${escape(target + (query !== undefined ? `?${query}` : ""))}"${current ? ' aria-current="page"' : ""}>${label}</a>`;
+  });
+  return `<header class="site-bar${extra ? ` ${extra}` : ""}">
+      <nav aria-label="Site">
+        ${links.join("\n        ")}
+        <a href="${REPO}">GitHub</a>
+      </nav>
+    </header>`;
+}
+
 /** @param {string} page @param {string} title @param {string} body */
 function template(page, title, body) {
   const up = (/** @type {string} */ target) => path.posix.relative(path.posix.dirname(page), target) || ".";
-  const nav = NAV.map(([href, label]) => {
-    const current = href === page ? ' aria-current="page"' : "";
-    const target = href.endsWith("/") || href.includes("?") ? `${up(href.split("?")[0])}/${href.includes("?") ? `?${href.split("?")[1]}` : ""}` : up(href);
-    return `<a href="${escape(target.replace(/\/\/$/, "/"))}"${current}>${label}</a>`;
-  }).join("\n        ");
   return `<!doctype html>
 <html lang="en">
   <head>
@@ -144,14 +160,10 @@ function template(page, title, body) {
     <title>${escape(title)} · Wiring diagrams</title>
     <meta name="description" content="Spivak's operad of wiring diagrams in Python, Rust and JavaScript, with a d3 viewer and playground." />
     <link rel="stylesheet" href="${escape(up("site.css"))}" />
+    <link rel="stylesheet" href="${escape(up("nav.css"))}" />
   </head>
   <body>
-    <header class="site-bar">
-      <nav aria-label="Site">
-        ${nav}
-        <a href="${REPO}">GitHub</a>
-      </nav>
-    </header>
+    ${navBar(page)}
     <main class="prose">
 ${body}
     </main>
@@ -171,8 +183,20 @@ const LEAD = `<div class="cta">
 
 rmSync(DIST, { recursive: true, force: true });
 mkdirSync(DIST, { recursive: true });
-for (const dir of ASSETS) cpSync(path.join(ROOT, dir), path.join(DIST, dir), { recursive: true });
+const notCache = (/** @type {string} */ src) => !src.includes("__pycache__");
+for (const dir of ASSETS) cpSync(path.join(ROOT, dir), path.join(DIST, dir), { recursive: true, filter: notCache });
 cpSync(path.join(ROOT, "site/site.css"), path.join(DIST, "site.css"));
+cpSync(path.join(ROOT, "site/nav.css"), path.join(DIST, "nav.css"));
+
+// the viewer gets the same navigation bar, where its page leaves a marker for it
+const viewer = path.join(DIST, "viewer/index.html");
+const marker = /<!-- site-nav:[^>]*-->/;
+const viewerHTML = readFileSync(viewer, "utf8");
+if (!marker.test(viewerHTML)) throw new Error("viewer/index.html has no <!-- site-nav: --> marker");
+writeFileSync(
+  viewer,
+  viewerHTML.replace(marker, `<link rel="stylesheet" href="../nav.css" />\n    ${navBar("viewer/index.html", "wide")}`),
+);
 
 for (const [source, page] of PAGES) {
   const { title, body } = render(source, page);
@@ -204,7 +228,12 @@ const broken = [];
 for (const { page, href, target, fragment } of pending) {
   const file = path.join(DIST, target);
   if (!existsSync(file)) broken.push(`${page}: ${href} → ${target} does not exist`);
-  else if (fragment && target.endsWith(".html") && !anchors.get(target)?.has(fragment)) {
+  else if (target === "viewer/index.html") {
+    // the viewer's fragment names an example
+    if (fragment && !existsSync(path.join(DIST, "spec/examples", `${fragment}.json`))) {
+      broken.push(`${page}: ${href} → no example ${fragment} in spec/examples`);
+    }
+  } else if (fragment && target.endsWith(".html") && !anchors.get(target)?.has(fragment)) {
     broken.push(`${page}: ${href} → no heading #${fragment} in ${target}`);
   }
 }

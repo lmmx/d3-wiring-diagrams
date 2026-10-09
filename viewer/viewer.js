@@ -22,6 +22,7 @@ import {
   recursiveStar,
   subtermAt,
 } from "./edit.js";
+import { scanPython } from "./python.js";
 
 const EXAMPLES = new URL("../spec/examples/", import.meta.url);
 const MAX_ROWS = 40;
@@ -114,6 +115,7 @@ function show(data, { animate = true, updateEditor = true } = {}) {
   state.selected = null;
   hideError();
   if (updateEditor) editor.value = prettyJSON(doc);
+  if (doc.code) /** @type {HTMLTextAreaElement} */ ($("py")).value = doc.code.source;
   describe();
   draw(animate);
   showAlgebra();
@@ -153,6 +155,8 @@ function describe() {
     "outer star": String(flat.outer),
   };
   $("facts").replaceChildren(...Object.entries(facts).flatMap(([k, v]) => [el("dt", k), el("dd", v)]));
+  $("code").hidden = !doc.code;
+  $("code-source").textContent = doc.code?.source ?? "";
   const types = [...new Set(flat.cables.concat(term.diagram.cables))].sort();
   $("legend").replaceChildren(
     ...(types.length > 1
@@ -263,6 +267,12 @@ function setEditing(/** @type {boolean} */ on) {
   if (on) url.searchParams.set("edit", "");
   else url.searchParams.delete("edit");
   history.replaceState(null, "", url.href.replace("?edit=", "?edit"));
+  // the site's navigation bar (added by the site build) marks Viewer or Playground
+  for (const a of document.querySelectorAll(".site-bar a")) {
+    const current = a.textContent === (on ? "Playground" : "Viewer");
+    if (current) a.setAttribute("aria-current", "page");
+    else if (a.textContent === "Viewer" || a.textContent === "Playground") a.removeAttribute("aria-current");
+  }
   showTools();
 }
 
@@ -308,10 +318,11 @@ function run(/** @type {() => Doc} */ edit) {
   }
 }
 
-/** The original example's prose no longer describes an edited document. */
+/** The original example's prose, and any source code, no longer describe an edited document. */
 function marked(/** @type {Doc} */ doc) {
-  if (doc.title.endsWith("(edited)")) return doc;
-  return { ...doc, title: `${doc.title} (edited)`, description: `Edited in the playground, starting from “${doc.title}”.` };
+  const { code: _, ...rest } = doc;
+  if (doc.title.endsWith("(edited)")) return rest;
+  return { ...rest, title: `${doc.title} (edited)`, description: `Edited in the playground, starting from “${doc.title}”.` };
 }
 
 let typing = 0;
@@ -347,6 +358,38 @@ $("share").addEventListener("click", async () => {
   setTimeout(() => ($("share").textContent = "Copy share link"), 1500);
 });
 $("edit-toggle").addEventListener("click", () => setEditing(!state.editing));
+
+for (const name of ["json", "python"]) {
+  $(`tab-${name}`).addEventListener("click", () => {
+    for (const other of ["json", "python"]) {
+      $(`tab-${other}`).setAttribute("aria-selected", String(other === name));
+      $(`pane-${other}`).hidden = other !== name;
+    }
+  });
+}
+
+$("py-scan").addEventListener("click", async () => {
+  const button = /** @type {HTMLButtonElement} */ ($("py-scan"));
+  const status = (/** @type {string} */ text) => ($("py-status").textContent = text);
+  $("py-error").hidden = true;
+  button.disabled = true;
+  try {
+    const doc = await scanPython(
+      /** @type {HTMLTextAreaElement} */ ($("py")).value,
+      {
+        function: /** @type {HTMLInputElement} */ ($("py-function")).value.trim(),
+        expand: Number(/** @type {HTMLInputElement} */ ($("py-expand")).value) || 0,
+      },
+      status,
+    );
+    await apply(doc);
+  } catch (e) {
+    $("py-error").hidden = false;
+    $("py-error").textContent = message(e);
+  } finally {
+    button.disabled = false;
+  }
+});
 
 // -- controls ----------------------------------------------------------------------------
 

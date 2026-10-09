@@ -64,10 +64,15 @@ one per wire in canonical order, `[0, 0, 1]`.
 
 ## Example file (`spec/examples/*.json`)
 
-`{title, source, description, term, algebra?}`. Here `algebra` is
-`{kind: "rel" | "rel_recursive", domains, relations, expected}`, with one
-relation per leaf of `term`, in order. For `rel_recursive`, `term` evaluates to
-`φ: X → [Z ⇒ Z]` and `expected` is the greatest recursive relation on `Z`.
+`{title, source, description, term, algebra?, code?}`.
+
+- `algebra` is `{kind: "rel" | "rel_recursive", domains, relations, expected}`,
+  with one relation per leaf of `term`, in order. For `rel_recursive`, `term`
+  evaluates to `φ: X → [Z ⇒ Z]` and `expected` is the greatest recursive
+  relation on `Z`.
+- `code` is `{language: "python", source}`: the source a scanned term came
+  from ([code.md](code.md)). The viewer shows it, and the playground's Python
+  tab starts from it.
 
 ## Errors
 

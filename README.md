@@ -28,6 +28,12 @@ The paper's operad and everything it constructs on it:
 - **Algebras**: Rel (relations; conjunctive queries), including unions
   (disjunctive queries) and **recursion** as a greatest fixed point; and Eq
   (equivalence relations).
+- **Code as wiring diagrams**: `wiring_diagrams.code` scans Python source.
+  - A function is a star with wires for its parameters and `return`, filled
+    with the dataflow of its body.
+  - Calls into the same module have the callee's own star, so **inlining is
+    operadic composition**.
+  - In the playground the same scanner runs in the browser.
 - **Laws** checked by property tests in every language: identity,
   associativity, equivariance, functoriality of each algebra, and the
   closed-structure bijection.
@@ -44,7 +50,7 @@ viewer/   the viewer and playground (plain HTML/CSS/JS, vendored d3)
 site/     builds README + docs + viewer into dist/ (deployed by vercel.json)
 spec/     JSON Schema, the paper's examples, and the shared conformance suite
 scripts/  generate.py: writes spec/ from the Python reference
-docs/     theory, format, visualisation, performance, journal
+docs/     theory, format, code, visualisation, performance, journal
 ```
 
 The three implementations share one JSON format ([docs/format.md](docs/format.md))
@@ -67,6 +73,19 @@ nand = rel.Relation.from_predicate(
 )
 rel.apply(phi, [nand]).records()  # [{'in': False, 'out': True}, {'in': True, 'out': False}]
 phi.compose([WiringDiagram.identity(phi.inner[0])]) == phi  # True
+```
+
+Scanning code (see [docs/code.md](docs/code.md)):
+
+```sh
+python -m wiring_diagrams.code module.py -f hypot --expand 1 > hypot.json   # open in the viewer
+```
+
+```python
+from wiring_diagrams.code import scan_source
+
+term = scan_source(source, function="hypot", expand=1)  # calls into the module filled in
+term.evaluate()                                        # the inlined, composite diagram
 ```
 
 **Rust**
@@ -100,6 +119,8 @@ any example, term or diagram, including `term.to_json()` from Python or
   §5.1), with the relations kept consistent;
 - collapse a sub-diagram back into one star;
 - compose the whole term;
+- scan Python code (the **Python code** tab: paste a module, name a function
+  if you like, and choose how many levels of calls to expand);
 - share the result as a link.
 
 **Site**: `just site` builds the docs pages, the viewer and the playground into

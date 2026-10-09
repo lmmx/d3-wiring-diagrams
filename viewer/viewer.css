@@ -154,6 +154,7 @@ input:focus-visible {
 
 main {
   flex: 1;
+  min-height: 0;
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(18rem, 24rem);
 }
@@ -176,7 +177,7 @@ main.editing {
   padding: 1rem;
   border-right: 1px solid var(--rule);
   background: var(--panel);
-  max-height: calc(100vh - 3.5rem);
+  overflow: auto;
   min-width: 0;
 }
 
@@ -227,6 +228,94 @@ main.editing {
   max-width: 100%;
 }
 
+.tabs {
+  display: flex;
+  gap: 0.25rem;
+  border-bottom: 1px solid var(--rule);
+}
+
+.tabs button {
+  border: 0;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  background: none;
+  color: var(--muted);
+  padding: 0.35rem 0.6rem;
+}
+
+.tabs button[aria-selected="true"] {
+  color: var(--fg);
+  border-bottom-color: var(--fg);
+  font-weight: 600;
+}
+
+.pane {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  flex: 1;
+  min-height: 0;
+}
+
+.pane[hidden] {
+  display: none;
+}
+
+.pane p {
+  margin: 0;
+}
+
+#py {
+  flex: 1;
+  min-height: 14rem;
+  width: 100%;
+  resize: vertical;
+  font: 12px/1.45 ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  color: var(--fg);
+  background: var(--bg);
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  padding: 0.6rem;
+  tab-size: 4;
+  white-space: pre;
+}
+
+.row input {
+  font: inherit;
+  color: inherit;
+  background: var(--bg);
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  padding: 0.2rem 0.4rem;
+}
+
+.row input[type="number"] {
+  width: 3.5rem;
+}
+
+button.primary {
+  background: var(--fg);
+  color: var(--bg);
+  border-color: var(--fg);
+}
+
+#code pre {
+  max-height: 22rem;
+  overflow: auto;
+  background: var(--bg);
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  padding: 0.6rem;
+  font: 12px/1.45 ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+}
+
+#code summary {
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.row,
 .tools .row {
   display: flex;
   flex-wrap: wrap;
@@ -248,7 +337,6 @@ code {
   display: block;
   width: 100%;
   height: auto;
-  max-height: calc(100vh - 7rem);
   aspect-ratio: 2.64 / 2.56;
   margin: 0 auto;
   touch-action: none;
@@ -266,7 +354,6 @@ code {
   background: var(--panel);
   padding: 1rem 1.25rem 2rem;
   overflow: auto;
-  max-height: calc(100vh - 3.5rem);
 }
 
 @media (max-width: 52rem) {
@@ -442,3 +529,25 @@ th {
   fill: var(--wd-hot);
 }
 
+
+/* On wide screens the page is exactly one viewport tall, whatever bars sit above
+   the toolbar (the site build adds the docs' navigation). The panels scroll and
+   the diagram fits the space between them. */
+@media (min-width: 52rem) {
+  body {
+    height: 100vh;
+  }
+
+  .canvas {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+
+  #diagram {
+    flex: 1;
+    min-height: 0;
+    height: 100%;
+    aspect-ratio: auto;
+  }
+}

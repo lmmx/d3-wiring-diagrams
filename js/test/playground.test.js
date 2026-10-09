@@ -18,6 +18,10 @@ import {
   plugIn,
   prettyJSON,
 } from "../../viewer/edit.js";
+import { readdirSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+
+import { PACKAGE_FILES } from "../../viewer/python.js";
 import { readSpec } from "./helpers.js";
 
 const docs = readSpec("examples/index.json").map((/** @type {{slug: string}} */ e) => readSpec(`examples/${e.slug}.json`));
@@ -97,4 +101,9 @@ it("documents round-trip through share links and pretty printing", async () => {
     assert.deepStrictEqual(JSON.parse(prettyJSON(doc)), doc);
   }
   assert.deepStrictEqual(normalize({ cables: [], inner: [], outer: {} }).term, { diagram: { cables: [], inner: [], outer: {} } });
+});
+
+it("the playground loads every module of the Python package into Pyodide", () => {
+  const dir = fileURLToPath(new URL("../../python/src/wiring_diagrams/", import.meta.url));
+  assert.deepStrictEqual([...PACKAGE_FILES].sort(), readdirSync(dir).filter((f) => f.endsWith(".py")).sort());
 });
