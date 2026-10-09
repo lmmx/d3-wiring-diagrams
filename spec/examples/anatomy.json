@@ -1,0 +1,18 @@
+{
+ "title": "Anatomy of a typed wiring diagram",
+ "source": "Spivak, Example 2.1.7 / Figure 6",
+ "description": "Three inner stars inside an outer star. One cable is soldered to three wires, one is a self-loop on a single star, one dangles from an inner wire, one runs straight to the outer star, and one is floating (soldered to nothing). Wire colours are types.",
+ "term": {
+  "diagram": {
+   "cables": ["Bool", "N", "N", "Bool", "N", "Bool", "N"],
+   "inner": [
+    {"p": 0, "q": 1, "r": 2},
+    {"s": 1, "t": 3, "u": 3},
+    {"v": 2, "w": 1, "x": 4}
+   ],
+   "outer": {"a": 0, "b": 2, "c": 5}
+  },
+  "labels": ["X₁", "X₂", "X₃"],
+  "label": "Y"
+ }
+}

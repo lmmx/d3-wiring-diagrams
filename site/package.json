@@ -1,0 +1,14 @@
+{
+  "name": "wiring-diagrams-site",
+  "private": true,
+  "type": "module",
+  "description": "Builds the static site (docs + viewer + playground) into dist/ for Vercel",
+  "scripts": {
+    "build": "node build.mjs",
+    "smoke": "node smoke.mjs"
+  },
+  "devDependencies": {
+    "marked": "15.0.12",
+    "playwright": "1.56.1"
+  }
+}

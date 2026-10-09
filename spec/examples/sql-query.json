@@ -1,0 +1,99 @@
+{
+ "title": "Male students sharing a course with a female student",
+ "source": "Spivak, Example 4.2.1",
+ "description": "SELECT L.student, L.address FROM attends a1, gender g1, attends a2, gender g2, lives L WHERE a1.student=g1.student AND a2.student=g2.student AND L.student=g1.student AND a1.course=a2.course AND g1.gender='male' AND g2.gender='female'. The five tables and two constants are inner stars, the WHERE clause is the cabling, and the SELECT list is the outer star.",
+ "term": {
+  "diagram": {
+   "cables": ["Course", "Student", "Gender", "Student", "Gender", "Address"],
+   "inner": [
+    {"course": 0, "student": 1},
+    {"gender": 2, "student": 1},
+    {"course": 0, "student": 3},
+    {"gender": 4, "student": 3},
+    {"address": 5, "student": 1},
+    {"gender": 2},
+    {"gender": 4}
+   ],
+   "outer": {"address": 5, "student": 1}
+  },
+  "labels": ["attends a1", "gender g1", "attends a2", "gender g2", "lives L", "'male'", "'female'"],
+  "label": "query"
+ },
+ "algebra": {
+  "kind": "rel",
+  "domains": {
+   "Address": ["1 Elm St", "2 Oak Ave", "3 Pine Rd", "4 Ash Ct"],
+   "Course": ["logic", "music"],
+   "Gender": ["female", "male"],
+   "Student": ["ada", "bob", "cy", "dee"]
+  },
+  "relations": [
+   {
+    "wires": ["course", "student"],
+    "rows": [
+     ["logic", "ada"],
+     ["logic", "bob"],
+     ["logic", "dee"],
+     ["music", "cy"],
+     ["music", "dee"]
+    ]
+   },
+   {
+    "wires": ["gender", "student"],
+    "rows": [
+     ["female", "ada"],
+     ["female", "dee"],
+     ["male", "bob"],
+     ["male", "cy"]
+    ]
+   },
+   {
+    "wires": ["course", "student"],
+    "rows": [
+     ["logic", "ada"],
+     ["logic", "bob"],
+     ["logic", "dee"],
+     ["music", "cy"],
+     ["music", "dee"]
+    ]
+   },
+   {
+    "wires": ["gender", "student"],
+    "rows": [
+     ["female", "ada"],
+     ["female", "dee"],
+     ["male", "bob"],
+     ["male", "cy"]
+    ]
+   },
+   {
+    "wires": ["address", "student"],
+    "rows": [
+     ["1 Elm St", "ada"],
+     ["2 Oak Ave", "bob"],
+     ["3 Pine Rd", "cy"],
+     ["4 Ash Ct", "dee"]
+    ]
+   },
+   {
+    "wires": ["gender"],
+    "rows": [
+     ["male"]
+    ]
+   },
+   {
+    "wires": ["gender"],
+    "rows": [
+     ["female"]
+    ]
+   }
+  ],
+  "expected": {
+   "wires": ["address", "student"],
+   "rows": [
+    ["2 Oak Ave", "bob"],
+    ["3 Pine Rd", "cy"]
+   ]
+  }
+ }
+}

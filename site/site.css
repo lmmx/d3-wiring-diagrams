@@ -1,0 +1,202 @@
+/* Docs pages. Same tokens and themes as viewer/viewer.css. */
+
+:root {
+  color-scheme: light dark;
+  --bg: #fbfaf7;
+  --panel: #ffffff;
+  --fg: #1d1f23;
+  --muted: #646a73;
+  --rule: #e2e0da;
+  --accent: #3b5bdb;
+  --code-bg: #f1efe9;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #15171b;
+    --panel: #1c1f24;
+    --fg: #e7e8ea;
+    --muted: #9aa0a8;
+    --rule: #30343b;
+    --accent: #8ea8ff;
+    --code-bg: #22262c;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font: 16px/1.6 system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+a {
+  color: var(--accent);
+}
+
+.site-bar {
+  border-bottom: 1px solid var(--rule);
+  background: var(--panel);
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.site-bar nav {
+  max-width: 52rem;
+  margin: 0 auto;
+  padding: 0.6rem 1rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 1.1rem;
+  font-size: 0.92rem;
+}
+
+.site-bar a {
+  color: var(--muted);
+  text-decoration: none;
+}
+
+.site-bar a:hover,
+.site-bar a[aria-current="page"] {
+  color: var(--fg);
+}
+
+.site-bar a[aria-current="page"] {
+  font-weight: 600;
+}
+
+.prose {
+  max-width: 52rem;
+  margin: 0 auto;
+  padding: 1.5rem 1rem 4rem;
+}
+
+.prose h1 {
+  font-size: 2rem;
+  line-height: 1.2;
+  margin: 1rem 0 1rem;
+}
+
+.prose h2 {
+  font-size: 1.35rem;
+  margin: 2.4rem 0 0.6rem;
+  padding-bottom: 0.3rem;
+  border-bottom: 1px solid var(--rule);
+}
+
+.prose h3 {
+  font-size: 1.1rem;
+  margin: 1.8rem 0 0.4rem;
+}
+
+.prose h1,
+.prose h2,
+.prose h3,
+.prose h4 {
+  position: relative;
+  scroll-margin-top: 4rem;
+}
+
+.anchor {
+  position: absolute;
+  left: -1.1em;
+  padding-right: 0.3em;
+  color: var(--muted);
+  text-decoration: none;
+  opacity: 0;
+}
+
+h1:hover .anchor,
+h2:hover .anchor,
+h3:hover .anchor,
+h4:hover .anchor,
+.anchor:focus {
+  opacity: 1;
+}
+
+.prose img {
+  max-width: 100%;
+  height: auto;
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  background: #fff;
+}
+
+.prose code {
+  font: 0.88em ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  background: var(--code-bg);
+  padding: 0.1em 0.3em;
+  border-radius: 4px;
+}
+
+.prose pre {
+  background: var(--code-bg);
+  padding: 0.9rem 1rem;
+  border-radius: 6px;
+  overflow-x: auto;
+  line-height: 1.45;
+}
+
+.prose pre code {
+  background: none;
+  padding: 0;
+  font-size: 0.85rem;
+}
+
+.prose table {
+  border-collapse: collapse;
+  display: block;
+  overflow-x: auto;
+  margin: 1rem 0;
+  font-size: 0.92rem;
+}
+
+.prose th,
+.prose td {
+  border-bottom: 1px solid var(--rule);
+  padding: 0.35rem 0.9rem 0.35rem 0;
+  text-align: left;
+  vertical-align: top;
+}
+
+.prose blockquote {
+  margin: 1rem 0;
+  padding-left: 1rem;
+  border-left: 3px solid var(--rule);
+  color: var(--muted);
+}
+
+.cta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin: 0.5rem 0 1rem;
+}
+
+.button {
+  display: inline-block;
+  padding: 0.5rem 0.9rem;
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  background: var(--panel);
+  color: var(--fg);
+  text-decoration: none;
+  font-weight: 550;
+}
+
+.button.primary {
+  background: var(--fg);
+  border-color: var(--fg);
+  color: var(--bg);
+}
+
+.button:focus-visible,
+.site-bar a:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}

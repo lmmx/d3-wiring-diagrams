@@ -1,0 +1,35 @@
+{
+  "name": "wiring-diagrams",
+  "version": "0.1.0",
+  "description": "The operad of wiring diagrams (Spivak, arXiv:1305.0297) with deterministic layout and a d3 renderer",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.js",
+    "./layout": "./src/layout.js",
+    "./render": "./src/render.js"
+  },
+  "files": [
+    "src"
+  ],
+  "scripts": {
+    "test": "node --test \"test/*.test.js\"",
+    "check": "tsc -p jsconfig.json"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "author": "Louis Maddox <louismmx@gmail.com>",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/lmmx/d3-wiring-diagrams"
+  },
+  "keywords": [
+    "operad",
+    "wiring-diagrams",
+    "category-theory",
+    "d3"
+  ],
+  "devDependencies": {
+    "typescript": "5.6.3"
+  }
+}

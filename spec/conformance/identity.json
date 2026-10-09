@@ -1,0 +1,22 @@
+{"cases": [
+{"star":{"c":"B","d":"A"},"expected":{"cables":["B","A"],"inner":[{"c":0,"d":1}],"outer":{"c":0,"d":1}}},
+{"star":{"d":"B","é":"B","😀":"B"},"expected":{"cables":["B","B","B"],"inner":[{"d":0,"é":1,"😀":2}],"outer":{"d":0,"é":1,"😀":2}}},
+{"star":{"b":"A","c":"A","d":"B","é":"B","😀":"B"},"expected":{"cables":["A","A","B","B","B"],"inner":[{"b":0,"c":1,"d":2,"é":3,"😀":4}],"outer":{"b":0,"c":1,"d":2,"é":3,"😀":4}}},
+{"star":{"a":"B","b":"A","c":"B","d":"B"},"expected":{"cables":["B","A","B","B"],"inner":[{"a":0,"b":1,"c":2,"d":3}],"outer":{"a":0,"b":1,"c":2,"d":3}}},
+{"star":{"é":"B"},"expected":{"cables":["B"],"inner":[{"é":0}],"outer":{"é":0}}},
+{"star":{"a":"B","d":"B","😀":"B"},"expected":{"cables":["B","B","B"],"inner":[{"a":0,"d":1,"😀":2}],"outer":{"a":0,"d":1,"😀":2}}},
+{"star":{"a":"B","d":"A"},"expected":{"cables":["B","A"],"inner":[{"a":0,"d":1}],"outer":{"a":0,"d":1}}},
+{"star":{"a":"B","b":"A","d":"B","😀":"B"},"expected":{"cables":["B","A","B","B"],"inner":[{"a":0,"b":1,"d":2,"😀":3}],"outer":{"a":0,"b":1,"d":2,"😀":3}}},
+{"star":{"é":"B","😀":"B"},"expected":{"cables":["B","B"],"inner":[{"é":0,"😀":1}],"outer":{"é":0,"😀":1}}},
+{"star":{"b":"B","😀":"A"},"expected":{"cables":["B","A"],"inner":[{"b":0,"😀":1}],"outer":{"b":0,"😀":1}}},
+{"star":{"b":"B","c":"A","é":"A"},"expected":{"cables":["B","A","A"],"inner":[{"b":0,"c":1,"é":2}],"outer":{"b":0,"c":1,"é":2}}},
+{"star":{"b":"B","d":"A","é":"B","😀":"A"},"expected":{"cables":["B","A","B","A"],"inner":[{"b":0,"d":1,"é":2,"😀":3}],"outer":{"b":0,"d":1,"é":2,"😀":3}}},
+{"star":{"b":"B","c":"A","é":"A","😀":"B"},"expected":{"cables":["B","A","A","B"],"inner":[{"b":0,"c":1,"é":2,"😀":3}],"outer":{"b":0,"c":1,"é":2,"😀":3}}},
+{"star":{"a":"A","b":"A","c":"A","😀":"B"},"expected":{"cables":["A","A","A","B"],"inner":[{"a":0,"b":1,"c":2,"😀":3}],"outer":{"a":0,"b":1,"c":2,"😀":3}}},
+{"star":{"😀":"A"},"expected":{"cables":["A"],"inner":[{"😀":0}],"outer":{"😀":0}}},
+{"star":{"b":"B","c":"A","d":"B","😀":"A"},"expected":{"cables":["B","A","B","A"],"inner":[{"b":0,"c":1,"d":2,"😀":3}],"outer":{"b":0,"c":1,"d":2,"😀":3}}},
+{"star":{"b":"A","d":"A","é":"A"},"expected":{"cables":["A","A","A"],"inner":[{"b":0,"d":1,"é":2}],"outer":{"b":0,"d":1,"é":2}}},
+{"star":{"a":"B","b":"A"},"expected":{"cables":["B","A"],"inner":[{"a":0,"b":1}],"outer":{"a":0,"b":1}}},
+{"star":{"a":"A","b":"A"},"expected":{"cables":["A","A"],"inner":[{"a":0,"b":1}],"outer":{"a":0,"b":1}}},
+{"star":{"b":"A","c":"A","d":"A","é":"A"},"expected":{"cables":["A","A","A","A"],"inner":[{"b":0,"c":1,"d":2,"é":3}],"outer":{"b":0,"c":1,"d":2,"é":3}}}
+]}

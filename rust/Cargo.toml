@@ -1,0 +1,50 @@
+[package]
+name = "wiring-diagrams"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.85"
+description = "The operad of wiring diagrams (Spivak, arXiv:1305.0297): typed cospans, pushout composition, closed structure, and the Rel and Eq algebras"
+authors = ["Louis Maddox <louismmx@gmail.com>"]
+repository = "https://github.com/lmmx/d3-wiring-diagrams"
+readme = "README.md"
+keywords = ["operad", "category-theory", "wiring-diagrams", "relational-algebra"]
+categories = ["mathematics", "data-structures"]
+
+[features]
+default = ["serde"]
+## JSON interchange (spec/): Serialize/Deserialize impls and `Scalar`.
+serde = ["dep:serde", "dep:serde_json"]
+
+[dependencies]
+serde = { version = "1", optional = true, features = ["derive"] }
+serde_json = { version = "1", optional = true }
+
+[dev-dependencies]
+criterion = { version = "0.5", default-features = false, features = ["cargo_bench_support"] }
+serde_json = "1"
+
+[[test]]
+name = "conformance"
+required-features = ["serde"]
+
+[[test]]
+name = "examples"
+required-features = ["serde"]
+
+[[bench]]
+name = "operad"
+harness = false
+required-features = ["serde"]
+
+[lints.rust]
+missing_docs = "warn"
+unsafe_code = "forbid"
+
+[lints.clippy]
+pedantic = { level = "warn", priority = -1 }
+module_name_repetitions = "allow"
+must_use_candidate = "allow"
+missing_errors_doc = "allow"
+cast_possible_truncation = "allow"
+# `expect`s in this crate state invariants established by construction, not input errors.
+missing_panics_doc = "allow"

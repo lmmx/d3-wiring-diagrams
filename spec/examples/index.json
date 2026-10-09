@@ -1,0 +1,12 @@
+[
+ {"slug": "anatomy", "title": "Anatomy of a typed wiring diagram", "source": "Spivak, Example 2.1.7 / Figure 6"},
+ {"slug": "not-from-nand", "title": "NOT from NAND", "source": "Spivak, Example 2.2.11"},
+ {"slug": "or-from-nand", "title": "OR from NAND gates", "source": "Spivak, Example 2.2.11 (\"one can form relations AND, OR, etc.\")"},
+ {"slug": "half-adder", "title": "Half adder from NAND gates", "source": "Spivak, Example 2.2.11 (\"one can form relations AND, OR, etc. ... half adders\")"},
+ {"slug": "query-product-nine", "title": "Which X, Y have X·Y = 9?", "source": "Spivak, Example 2.2.12 (φ₁)"},
+ {"slug": "query-projection", "title": "Which X, Z have X·Y = Z for some Y?", "source": "Spivak, Example 2.2.12 (φ₂)"},
+ {"slug": "query-squares", "title": "Which Z are squares?", "source": "Spivak, Example 2.2.12 (φ₃)"},
+ {"slug": "sql-query", "title": "Male students sharing a course with a female student", "source": "Spivak, Example 4.2.1"},
+ {"slug": "exists", "title": "y. ∃x. R(x)", "source": "Spivak, Example 4.2.2"},
+ {"slug": "factorial", "title": "Factorial as a recursive relation", "source": "Spivak, Example 5.2.1"}
+]
