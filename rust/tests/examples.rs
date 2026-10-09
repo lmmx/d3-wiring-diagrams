@@ -43,7 +43,13 @@ fn nested(
 #[test]
 fn examples_reproduce_their_expected_relations() {
     let all = examples();
-    assert_eq!(all.len(), 9);
+    // every example file is listed in index.json
+    let files =
+        std::fs::read_dir(PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../spec/examples"))
+            .unwrap()
+            .filter(|e| e.as_ref().unwrap().file_name() != "index.json")
+            .count();
+    assert_eq!(all.len(), files);
     for (slug, ex) in all {
         let term = Term::from_json_value(ex["term"].clone()).unwrap();
         let phi = term.evaluate();

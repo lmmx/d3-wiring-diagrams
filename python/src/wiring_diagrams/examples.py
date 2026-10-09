@@ -116,6 +116,32 @@ def _and_term() -> Term:
     return Term(phi, [None, _not_term()], ["NAND", "NOT"], label="AND")
 
 
+def _or_term() -> Term:
+    # out = NAND(NOT A, NOT B)
+    a, b, na, nb, out = range(5)
+    phi = _wd(
+        ["Bool"] * 5,
+        [{"in": a, "out": na}, {"in": b, "out": nb}, {"A": na, "B": nb, "out": out}],
+        {"A": a, "B": b, "out": out},
+    )
+    return Term(phi, [_not_term(), _not_term(), None], ["NOT", "NOT", "NAND"], label="OR")
+
+
+def or_from_nand() -> Example:
+    term = _or_term()
+    return Example(
+        "or-from-nand",
+        "OR from NAND gates",
+        'Spivak, Example 2.2.11 ("one can form relations AND, OR, etc.")',
+        "De Morgan: OR(A, B) = NAND(NOT A, NOT B), with each NOT itself a NAND whose "
+        "inputs share a cable. OR, AND and XOR all fill a star {A, B, out}, so in the "
+        "playground any of them can be plugged into any NAND.",
+        term,
+        BOOL,
+        [_nand()] * len(term.leaf_labels()),
+    )
+
+
 def _xor_term() -> Term:
     # m = NAND(A,B); p = NAND(A,m); q = NAND(B,m); out = NAND(p,q)
     a, b, m, p, q, out = range(6)
@@ -383,6 +409,7 @@ def anatomy() -> Example:
 ALL: list[Callable[[], Example]] = [
     anatomy,
     not_from_nand,
+    or_from_nand,
     half_adder,
     query_product_nine,
     query_projection,

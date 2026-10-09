@@ -5,7 +5,9 @@ import assert from "node:assert/strict";
 import { it } from "node:test";
 
 import { Star, Term, rel } from "../src/index.js";
-import { readSpec } from "./helpers.js";
+import { readdirSync } from "node:fs";
+
+import { SPEC, readSpec } from "./helpers.js";
 
 /** Rel of a term evaluated level by level (no flattening). */
 function nested(/** @type {Term} */ term, /** @type {Iterator<rel.Relation>} */ leaves, /** @type {any} */ doms) {
@@ -15,7 +17,10 @@ function nested(/** @type {Term} */ term, /** @type {Iterator<rel.Relation>} */ 
 
 const index = readSpec("examples/index.json");
 
-it("there are nine examples", () => assert.equal(index.length, 9));
+it("index.json lists every example file", () => {
+  const files = readdirSync(SPEC + "examples").filter((f) => f.endsWith(".json") && f !== "index.json");
+  assert.deepStrictEqual(index.map((/** @type {{slug: string}} */ e) => `${e.slug}.json`).sort(), files.sort());
+});
 
 for (const { slug } of index) {
   it(slug, () => {

@@ -1,0 +1,87 @@
+{
+ "title": "OR from NAND gates",
+ "source": "Spivak, Example 2.2.11 (\"one can form relations AND, OR, etc.\")",
+ "description": "De Morgan: OR(A, B) = NAND(NOT A, NOT B), with each NOT itself a NAND whose inputs share a cable. OR, AND and XOR all fill a star {A, B, out}, so in the playground any of them can be plugged into any NAND.",
+ "term": {
+  "diagram": {
+   "cables": ["Bool", "Bool", "Bool", "Bool", "Bool"],
+   "inner": [
+    {"in": 0, "out": 1},
+    {"in": 2, "out": 3},
+    {"A": 1, "B": 3, "out": 4}
+   ],
+   "outer": {"A": 0, "B": 2, "out": 4}
+  },
+  "children": [
+   {
+    "diagram": {
+     "cables": ["Bool", "Bool"],
+     "inner": [
+      {"A": 0, "B": 0, "out": 1}
+     ],
+     "outer": {"in": 0, "out": 1}
+    },
+    "labels": ["NAND"],
+    "label": "NOT"
+   },
+   {
+    "diagram": {
+     "cables": ["Bool", "Bool"],
+     "inner": [
+      {"A": 0, "B": 0, "out": 1}
+     ],
+     "outer": {"in": 0, "out": 1}
+    },
+    "labels": ["NAND"],
+    "label": "NOT"
+   },
+   null
+  ],
+  "labels": ["NOT", "NOT", "NAND"],
+  "label": "OR"
+ },
+ "algebra": {
+  "kind": "rel",
+  "domains": {
+   "Bool": [false, true]
+  },
+  "relations": [
+   {
+    "wires": ["A", "B", "out"],
+    "rows": [
+     [false, false, true],
+     [false, true, true],
+     [true, false, true],
+     [true, true, false]
+    ]
+   },
+   {
+    "wires": ["A", "B", "out"],
+    "rows": [
+     [false, false, true],
+     [false, true, true],
+     [true, false, true],
+     [true, true, false]
+    ]
+   },
+   {
+    "wires": ["A", "B", "out"],
+    "rows": [
+     [false, false, true],
+     [false, true, true],
+     [true, false, true],
+     [true, true, false]
+    ]
+   }
+  ],
+  "expected": {
+   "wires": ["A", "B", "out"],
+   "rows": [
+    [false, false, false],
+    [false, true, true],
+    [true, false, true],
+    [true, true, true]
+   ]
+  }
+ }
+}

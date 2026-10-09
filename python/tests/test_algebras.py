@@ -100,6 +100,14 @@ def test_half_adder_nested_equals_flat() -> None:
     assert stepwise == out
 
 
+def test_or_from_nand() -> None:
+    out = examples.or_from_nand().expected()
+    assert out is not None
+    assert {(r["A"], r["B"], r["out"]) for r in out.records()} == {
+        (a, b, a or b) for a in (False, True) for b in (False, True)
+    }
+
+
 def test_three_queries() -> None:
     nine = examples.query_product_nine().expected()
     assert nine is not None and rows(nine) == {(1, 9), (3, 3), (9, 1)}
