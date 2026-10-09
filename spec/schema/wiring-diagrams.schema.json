@@ -63,6 +63,13 @@
         "source": { "type": "string" },
         "description": { "type": "string" },
         "term": { "$ref": "#/$defs/term" },
+        "code": {
+          "description": "Source code the term was scanned from (wiring_diagrams.code).",
+          "type": "object",
+          "required": ["language", "source"],
+          "additionalProperties": false,
+          "properties": { "language": { "const": "python" }, "source": { "type": "string" } }
+        },
         "algebra": {
           "type": "object",
           "required": ["kind", "domains", "relations", "expected"],

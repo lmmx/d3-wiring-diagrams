@@ -8,5 +8,8 @@
  {"slug": "query-squares", "title": "Which Z are squares?", "source": "Spivak, Example 2.2.12 (φ₃)"},
  {"slug": "sql-query", "title": "Male students sharing a course with a female student", "source": "Spivak, Example 4.2.1"},
  {"slug": "exists", "title": "y. ∃x. R(x)", "source": "Spivak, Example 4.2.2"},
- {"slug": "factorial", "title": "Factorial as a recursive relation", "source": "Spivak, Example 5.2.1"}
+ {"slug": "factorial", "title": "Factorial as a recursive relation", "source": "Spivak, Example 5.2.1"},
+ {"slug": "code-module", "title": "module.py, scanned", "source": "wiring_diagrams.code (the proof of concept's sample module)"},
+ {"slug": "code-inlining", "title": "Inlining is composition", "source": "wiring_diagrams.code (expand=1)"},
+ {"slug": "code-loop", "title": "A loop with a branch", "source": "wiring_diagrams.code"}
 ]

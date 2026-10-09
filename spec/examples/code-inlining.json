@@ -1,0 +1,50 @@
+{
+ "title": "Inlining is composition",
+ "source": "wiring_diagrams.code (expand=1)",
+ "description": "hypot calls square twice. Each call star has square's own interface {x, return}, so square's body diagram can be plugged into it. In the nested view each call holds square's body. In the composed view the calls are gone and the two products sit directly in hypot's dataflow: operadic composition is inlining.",
+ "term": {
+  "diagram": {
+   "cables": ["py", "py", "py", "py", "py", "py", "py"],
+   "inner": [
+    {"return": 0, "x": 1},
+    {"return": 2, "x": 3},
+    {"0": 0, "1": 2, "return": 4},
+    {"0": 4, "return": 5},
+    {"0": 5, "return": 6}
+   ],
+   "outer": {"a": 1, "b": 3, "return": 6}
+  },
+  "children": [
+   {
+    "diagram": {
+     "cables": ["py", "py", "py"],
+     "inner": [
+      {"0": 0, "1": 0, "return": 1},
+      {"0": 1, "return": 2}
+     ],
+     "outer": {"return": 2, "x": 0}
+    },
+    "labels": ["*", "return"],
+    "label": "def square"
+   },
+   {
+    "diagram": {
+     "cables": ["py", "py", "py"],
+     "inner": [
+      {"0": 0, "1": 0, "return": 1},
+      {"0": 1, "return": 2}
+     ],
+     "outer": {"return": 2, "x": 0}
+    },
+    "labels": ["*", "return"],
+    "label": "def square"
+   },
+   null,
+   null,
+   null
+  ],
+  "labels": ["square", "square", "+", "math.sqrt", "return"],
+  "label": "def hypot"
+ },
+ "code": {"language": "python", "source": "import math\n\n\ndef square(x):\n    return x * x\n\n\ndef hypot(a, b):\n    return math.sqrt(square(a) + square(b))\n"}
+}

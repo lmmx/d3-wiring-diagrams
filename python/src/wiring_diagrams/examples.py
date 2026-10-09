@@ -13,7 +13,7 @@ from collections.abc import Callable, Hashable, Mapping
 from dataclasses import dataclass, field
 from typing import Any
 
-from . import rel
+from . import code, rel
 from .closed import hom_wire, internal_hom
 from .diagram import WiringDiagram
 from .rel import Domains, Relation
@@ -33,6 +33,7 @@ class Example:
     domains: Mapping[str, list[Hashable]] = field(default_factory=dict)
     relations: list[Relation] | None = None
     recursive: bool = False
+    code: str | None = None  # Python source the term was scanned from
 
     def expected(self) -> Relation | None:
         """The outer relation, computed with :mod:`.rel`."""
@@ -60,6 +61,8 @@ class Example:
                 "relations": [r.to_json() for r in self.relations],
                 "expected": expected.to_json(),
             }
+        if self.code is not None:
+            data["code"] = {"language": "python", "source": self.code}
         return data
 
 
@@ -406,6 +409,94 @@ def anatomy() -> Example:
     )
 
 
+# -- Python code, scanned (wiring_diagrams.code) -------------------------------------
+
+POC_MODULE = """\
+def bar():
+    x = 1
+
+
+class Foo:
+    def sum(self, x, y):
+        return x + y
+
+    def __init__(self, x, y):
+        self.x = x
+        self.y = y
+
+    @classmethod
+    def from_xy(cls, xy):
+        return cls(*xy)
+
+    def xsq(self):
+        return self.x ** 2
+"""
+
+HYPOT = """\
+import math
+
+
+def square(x):
+    return x * x
+
+
+def hypot(a, b):
+    return math.sqrt(square(a) + square(b))
+"""
+
+MEAN = """\
+def mean_positive(xs):
+    total = 0
+    count = 0
+    for x in xs:
+        if x > 0:
+            total += x
+            count += 1
+    return total / count if count else 0.0
+"""
+
+
+def code_module() -> Example:
+    return Example(
+        "code-module",
+        "module.py, scanned",
+        "wiring_diagrams.code (the proof of concept's sample module)",
+        "The module the original proof of concept drew as nested circles, now scanned from "
+        "its source. The module and the class are stars that contain their definitions. "
+        "Each function is a star whose wires are its parameters and return, filled with "
+        "the dataflow of its body. Assignments to self.x are stars.",
+        code.scan_source(POC_MODULE, name="module.py"),
+        code=POC_MODULE,
+    )
+
+
+def code_inlining() -> Example:
+    return Example(
+        "code-inlining",
+        "Inlining is composition",
+        "wiring_diagrams.code (expand=1)",
+        "hypot calls square twice. Each call star has square's own interface {x, return}, "
+        "so square's body diagram can be plugged into it. In the nested view each call holds "
+        "square's body. In the composed view the calls are gone and the two products sit "
+        "directly in hypot's dataflow: operadic composition is inlining.",
+        code.scan_source(HYPOT, name="hypot.py", function="hypot", expand=1),
+        code=HYPOT,
+    )
+
+
+def code_loop() -> Example:
+    return Example(
+        "code-loop",
+        "A loop with a branch",
+        "wiring_diagrams.code",
+        "A for loop is a star filled with its body's diagram. Its wires are the iterated "
+        "value (in), the variables it reads (total, count), and the ones it writes that are "
+        "used afterwards (total', count'). The if inside is a star of the same kind.",
+        code.scan_source(MEAN, name="mean.py", function="mean_positive"),
+        code=MEAN,
+    )
+
+
 ALL: list[Callable[[], Example]] = [
     anatomy,
     not_from_nand,
@@ -417,4 +508,7 @@ ALL: list[Callable[[], Example]] = [
     sql_query,
     exists_query,
     factorial,
+    code_module,
+    code_inlining,
+    code_loop,
 ]
