@@ -71,6 +71,21 @@ h1 {
   letter-spacing: 0.01em;
 }
 
+h1 a {
+  color: inherit;
+  text-decoration: none;
+}
+
+a {
+  color: var(--accent);
+}
+
+button[aria-pressed="true"]#edit-toggle {
+  background: var(--fg);
+  color: var(--bg);
+  border-color: var(--fg);
+}
+
 select,
 button,
 .file {
@@ -143,10 +158,84 @@ main {
   grid-template-columns: minmax(0, 1fr) minmax(18rem, 24rem);
 }
 
+main.editing {
+  grid-template-columns: minmax(18rem, 26rem) minmax(0, 1fr) minmax(16rem, 22rem);
+}
+
 @media (max-width: 52rem) {
-  main {
+  main,
+  main.editing {
     grid-template-columns: minmax(0, 1fr);
   }
+}
+
+.editor {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 1rem;
+  border-right: 1px solid var(--rule);
+  background: var(--panel);
+  max-height: calc(100vh - 3.5rem);
+  min-width: 0;
+}
+
+.editor[hidden] {
+  display: none;
+}
+
+.editor h2 {
+  font-size: 1rem;
+  margin: 0;
+}
+
+.editor-head p {
+  margin: 0.25rem 0 0;
+}
+
+#doc {
+  flex: 1;
+  min-height: 16rem;
+  width: 100%;
+  resize: vertical;
+  font: 12px/1.45 ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  color: var(--fg);
+  background: var(--bg);
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  padding: 0.6rem;
+  tab-size: 1;
+  white-space: pre;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.tools {
+  font-size: 0.85rem;
+}
+
+.tools h3 {
+  font-size: 0.9rem;
+  margin: 0.6rem 0 0.3rem;
+}
+
+.tools select {
+  max-width: 100%;
+}
+
+.tools .row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  align-items: center;
+}
+
+code {
+  font: 0.85em ui-monospace, "SF Mono", Menlo, Consolas, monospace;
 }
 
 .canvas {
