@@ -33,8 +33,8 @@ After PR #3 was merged, two requests came in:
 4. **Calls into the module get the callee's own star.** Arguments are bound
    positionally and by keyword, and defaulted parameters become undriven
    cables, so a call star *is* the callee's outer star. Expanding a call is
-   then operadic composition. The [`code-inlining`](../../viewer/#code-inlining)
-   example shows it, and a test checks `term.evaluate()` against composing by
+   then operadic composition. The `code-inlining` example (now
+   [`code-hypot`](../../viewer/#code-hypot)) shows it, and a test checks `term.evaluate()` against composing by
    hand.
 5. **Structural wire names cannot collide with variables.** They are keywords
    (`return`, `if`, `in`), or contain characters no identifier can (`0`, `x'`,

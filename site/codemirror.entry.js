@@ -1,0 +1,23 @@
+// The parts of CodeMirror 6 the viewer uses. `npm run vendor` bundles this file
+// into viewer/vendor/codemirror.js, and copies it to viewer/vendor/codemirror.d.ts
+// so that the type checker sees the packages' own types.
+export { Compartment, EditorSelection, EditorState, StateEffect, StateField } from "@codemirror/state";
+export {
+  Decoration,
+  EditorView,
+  drawSelection,
+  highlightActiveLine,
+  highlightActiveLineGutter,
+  highlightSpecialChars,
+  keymap,
+  lineNumbers,
+  placeholder,
+} from "@codemirror/view";
+export { defaultKeymap, history, historyKeymap, indentWithTab } from "@codemirror/commands";
+export { bracketMatching, ensureSyntaxTree, indentOnInput, indentUnit, syntaxHighlighting } from "@codemirror/language";
+export { closeBrackets, closeBracketsKeymap } from "@codemirror/autocomplete";
+export { highlightSelectionMatches, searchKeymap } from "@codemirror/search";
+export { lintGutter, setDiagnostics } from "@codemirror/lint";
+export { python } from "@codemirror/lang-python";
+export { json } from "@codemirror/lang-json";
+export { classHighlighter } from "@lezer/highlight";

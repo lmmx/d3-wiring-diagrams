@@ -1,0 +1,193 @@
+{
+ "title": "Binary search",
+ "source": "examples/python/search.py",
+ "description": "A while loop holding an if/elif/else: the elif is an if nested in the else branch. The first branch returns from inside the loop, so the loop, the if and that branch all have a return wire, soldered to the function's. The loop body writes lo' and hi' for the next iteration; nothing after the loop reads them, so they end inside the loop's star.",
+ "term": {
+  "diagram": {
+   "cables": ["py", "py", "py", "py", "py", "py", "py", "py", "py", "py", "py", "py"],
+   "inner": [
+    {"return": 0},
+    {"0": 1, "return": 2},
+    {"return": 3},
+    {"0": 2, "1": 3, "return": 4},
+    {"0": 0, "1": 4, "return": 5},
+    {"0": 5, "[0]": 6, "[1]": 7},
+    {"hi": 7, "lo": 6, "return": 8, "target": 9, "xs": 1},
+    {"return": 10},
+    {"0": 10, "return": 11},
+    {"0": 11, "return": 8}
+   ],
+   "outer": {"return": 8, "target": 9, "xs": 1}
+  },
+  "children": [
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   {
+    "diagram": {
+     "cables": ["py", "py", "py", "py", "py", "py", "py"],
+     "inner": [
+      {"hi": 0, "hi'": 1, "lo": 2, "lo'": 3, "return": 4, "target": 5, "xs": 6}
+     ],
+     "outer": {"hi": 0, "lo": 2, "return": 4, "target": 5, "xs": 6}
+    },
+    "children": [
+     {
+      "diagram": {
+       "cables": ["py", "py", "py", "py", "py", "py", "py", "py", "py", "py", "py", "py", "py"],
+       "inner": [
+        {"0": 0, "1": 1, "return": 2},
+        {"0": 0, "1": 1, "return": 3},
+        {"return": 4},
+        {"0": 3, "1": 4, "return": 5},
+        {"0": 6, "1": 5, "return": 7},
+        {"0": 7, "1": 8, "return": 9},
+        {"hi'": 10, "if": 9, "lo'": 11, "mid": 5, "return": 12, "target": 8, "xs": 6}
+       ],
+       "outer": {"hi": 1, "hi'": 10, "lo": 0, "lo'": 11, "return": 12, "target": 8, "xs": 6}
+      },
+      "children": [
+       null,
+       null,
+       null,
+       null,
+       null,
+       null,
+       {
+        "diagram": {
+         "cables": ["py", "py", "py", "py", "py", "py", "py"],
+         "inner": [
+          {"mid": 0, "return": 1},
+          {"hi'": 2, "lo'": 3, "mid": 0, "target": 4, "xs": 5}
+         ],
+         "outer": {"hi'": 2, "if": 6, "lo'": 3, "mid": 0, "return": 1, "target": 4, "xs": 5}
+        },
+        "children": [
+         {
+          "diagram": {
+           "cables": ["py", "py"],
+           "inner": [
+            {"0": 0, "return": 1}
+           ],
+           "outer": {"mid": 0, "return": 1}
+          },
+          "labels": ["return"],
+          "label": "then"
+         },
+         {
+          "diagram": {
+           "cables": ["py", "py", "py", "py", "py", "py", "py"],
+           "inner": [
+            {"0": 0, "1": 1, "return": 2},
+            {"0": 2, "1": 3, "return": 4},
+            {"hi'": 5, "if": 4, "lo'": 6, "mid": 1}
+           ],
+           "outer": {"hi'": 5, "lo'": 6, "mid": 1, "target": 3, "xs": 0}
+          },
+          "children": [
+           null,
+           null,
+           {
+            "diagram": {
+             "cables": ["py", "py", "py", "py"],
+             "inner": [
+              {"lo'": 0, "mid": 1},
+              {"hi'": 2, "mid": 1}
+             ],
+             "outer": {"hi'": 2, "if": 3, "lo'": 0, "mid": 1}
+            },
+            "children": [
+             {
+              "diagram": {
+               "cables": ["py", "py", "py"],
+               "inner": [
+                {"return": 0},
+                {"0": 1, "1": 0, "return": 2}
+               ],
+               "outer": {"lo'": 2, "mid": 1}
+              },
+              "labels": ["1", "+"],
+              "label": "then"
+             },
+             {
+              "diagram": {
+               "cables": ["py", "py", "py"],
+               "inner": [
+                {"return": 0},
+                {"0": 1, "1": 0, "return": 2}
+               ],
+               "outer": {"hi'": 2, "mid": 1}
+              },
+              "labels": ["1", "-"],
+              "label": "else"
+             }
+            ],
+            "labels": ["then", "else"],
+            "label": "if xs[mid] < target"
+           }
+          ],
+          "labels": ["[]", "<", "if xs[mid] < target"],
+          "label": "else"
+         }
+        ],
+        "labels": ["then", "else"],
+        "label": "if xs[mid] == target"
+       }
+      ],
+      "labels": ["<=", "+", "2", "//", "[]", "==", "if xs[mid] == target"],
+      "label": "body"
+     }
+    ],
+    "labels": ["body"],
+    "label": "while lo <= hi"
+   },
+   null,
+   null,
+   null
+  ],
+  "labels": ["0", "len", "1", "-", "( , )", "unpack", "while lo <= hi", "1", "-", "return"],
+  "label": "def index"
+ },
+ "code": {
+  "language": "python",
+  "source": "\"\"\"Binary search\n\nA while loop holding an if/elif/else: the elif is an if nested in the else\nbranch. The first branch returns from inside the loop, so the loop, the if\nand that branch all have a return wire, soldered to the function's. The loop\nbody writes lo' and hi' for the next iteration; nothing after the loop reads\nthem, so they end inside the loop's star.\n\"\"\"\n\n\ndef index(xs, target):\n    \"\"\"Where target is in the sorted list xs, or -1.\n\n    >>> index([1, 3, 5, 8, 13], 8)\n    3\n    >>> index([1, 3, 5, 8, 13], 4)\n    -1\n    \"\"\"\n    lo, hi = 0, len(xs) - 1\n    while lo <= hi:\n        mid = (lo + hi) // 2\n        if xs[mid] == target:\n            return mid\n        elif xs[mid] < target:\n            lo = mid + 1\n        else:\n            hi = mid - 1\n    return -1\n",
+  "name": "search.py",
+  "function": "index",
+  "expand": 0,
+  "spans": {
+   "0": [19, 13, 19, 14],
+   "1": [19, 16, 19, 23],
+   "2": [19, 26, 19, 27],
+   "3": [19, 16, 19, 27],
+   "4": [19, 13, 19, 27],
+   "5": [19, 4, 19, 27],
+   "6": [20, 4, 27, 24],
+   "6.0": [21, 8, 27, 24],
+   "6.0.0": [20, 10, 20, 18],
+   "6.0.1": [21, 15, 21, 22],
+   "6.0.2": [21, 27, 21, 28],
+   "6.0.3": [21, 14, 21, 28],
+   "6.0.4": [22, 11, 22, 18],
+   "6.0.5": [22, 11, 22, 28],
+   "6.0.6": [22, 8, 27, 24],
+   "6.0.6.0": [23, 12, 23, 22],
+   "6.0.6.0.0": [23, 12, 23, 22],
+   "6.0.6.1": [24, 8, 27, 24],
+   "6.0.6.1.0": [24, 13, 24, 20],
+   "6.0.6.1.1": [24, 13, 24, 29],
+   "6.0.6.1.2": [24, 8, 27, 24],
+   "6.0.6.1.2.0": [25, 12, 25, 24],
+   "6.0.6.1.2.0.0": [25, 23, 25, 24],
+   "6.0.6.1.2.0.1": [25, 17, 25, 24],
+   "6.0.6.1.2.1": [27, 12, 27, 24],
+   "6.0.6.1.2.1.0": [27, 23, 27, 24],
+   "6.0.6.1.2.1.1": [27, 17, 27, 24],
+   "7": [28, 12, 28, 13],
+   "8": [28, 11, 28, 13],
+   "9": [28, 4, 28, 13]
+  }
+ }
+}

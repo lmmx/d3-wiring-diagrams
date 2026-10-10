@@ -33,8 +33,10 @@ test-rs:
     cargo test --no-default-features
 
 # -- JS -----------------------------------------------------------------------
+# tsc also checks viewer/, whose CodeMirror types come from site/node_modules
 [working-directory: 'js']
 lint-js:
+    npm ci --prefix ../site --no-audit --no-fund
     npm run check
 
 [working-directory: 'js']
@@ -50,12 +52,18 @@ bench:
 # Build the docs site + viewer + playground into dist/ (what Vercel deploys).
 # Fails on any broken relative link or #anchor.
 site:
-    npm ci --prefix site
+    npm ci --prefix site --no-audit --no-fund
+    npm run --prefix site vendor -- --check
     npm run --prefix site build
 
-# Load the built site in Chromium: pages, the viewer, a playground edit.
+# Load the built site in Chromium: pages, the viewer, a playground edit, a Python scan.
 smoke: site
     npm run --prefix site smoke
+
+# Rebuild viewer/vendor/codemirror.js from site/codemirror.entry.js and the locked versions.
+vendor:
+    npm ci --prefix site --no-audit --no-fund
+    npm run --prefix site vendor
 
 # Serve the repository root and open http://localhost:8000/viewer/
 serve port="8000":

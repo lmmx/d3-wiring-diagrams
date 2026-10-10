@@ -12,7 +12,15 @@
       "dom",
       "dom.iterable"
     ],
-    "types": []
+    "types": [],
+    "paths": {
+      "@codemirror/*": [
+        "../site/node_modules/@codemirror/*"
+      ],
+      "@lezer/*": [
+        "../site/node_modules/@lezer/*"
+      ]
+    }
   },
   "include": [
     "src/**/*.js",

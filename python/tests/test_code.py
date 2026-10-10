@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import doctest
+import importlib.util
 import io
 import json
 import sysconfig
@@ -10,10 +12,22 @@ from pathlib import Path
 
 import pytest
 
-from wiring_diagrams import Term, examples
-from wiring_diagrams.code import document, main, scan_path, scan_source
+from wiring_diagrams import Term
+from wiring_diagrams.code import document, main, scan_path, scan_source, scan_spans
 
-PACKAGE = Path(__file__).resolve().parents[1] / "src" / "wiring_diagrams"
+ROOT = Path(__file__).resolve().parents[2]
+PACKAGE = ROOT / "python" / "src" / "wiring_diagrams"
+PROGRAMS = ROOT / "examples" / "python"
+SCANNED = sorted((ROOT / "spec" / "examples").glob("code-*.json"))
+
+
+def program(name: str) -> str:
+    return (PROGRAMS / name).read_text(encoding="utf-8")
+
+
+POC_MODULE = program("module.py")
+HYPOT = program("hypot.py")
+MEAN = program("mean.py")
 
 
 def wiring(t: Term, i: int) -> dict[str, int]:
@@ -21,7 +35,7 @@ def wiring(t: Term, i: int) -> dict[str, int]:
 
 
 def test_module_is_a_star_of_definitions() -> None:
-    t = scan_source(examples.POC_MODULE, name="module.py")
+    t = scan_source(POC_MODULE, name="module.py")
     assert t.label == "module.py"
     assert t.labels == ("bar", "class Foo")
     assert t.diagram.outer.names == ()
@@ -45,9 +59,9 @@ def test_function_body_is_dataflow() -> None:
 
 
 def test_calls_into_the_module_have_the_callee_star_and_expand_by_composition() -> None:
-    flat = scan_source(examples.HYPOT, function="hypot")
-    expanded = scan_source(examples.HYPOT, function="hypot", expand=1)
-    square = scan_source(examples.HYPOT, function="square")
+    flat = scan_source(HYPOT, function="hypot")
+    expanded = scan_source(HYPOT, function="hypot", expand=1)
+    square = scan_source(HYPOT, function="square")
     assert flat.labels.count("square") == 2
     assert all(k is None for k in flat.children)
     for i, label in enumerate(expanded.labels):
@@ -98,7 +112,7 @@ def test_recursion_is_not_expanded_forever() -> None:
 
 
 def test_loops_carry_reads_and_writes() -> None:
-    t = scan_source(examples.MEAN, function="mean_positive")
+    t = scan_source(MEAN, function="mean_positive")
     i = t.labels.index("for x in xs")
     assert set(wiring(t, i)) == {"in", "total", "count", "total'", "count'"}
     loop = t.children[i]
@@ -156,8 +170,8 @@ def test_unknown_function_and_bad_syntax() -> None:
 
 
 def test_scans_are_deterministic() -> None:
-    a = scan_source(examples.POC_MODULE, expand=2).to_json()
-    assert a == scan_source(examples.POC_MODULE, expand=2).to_json()
+    a = scan_source(POC_MODULE, expand=2).to_json()
+    assert a == scan_source(POC_MODULE, expand=2).to_json()
 
 
 def test_scans_this_package_and_part_of_the_standard_library() -> None:
@@ -167,12 +181,91 @@ def test_scans_this_package_and_part_of_the_standard_library() -> None:
         assert scan_path(stdlib / package, expand=1).diagram.arity > 0
 
 
+def test_loop_bodies_output_what_the_next_iteration_reads() -> None:
+    t = scan_source(program("fibonacci.py"), function="fib")
+    loop = t.children[t.labels.index("for _ in range(n)")]
+    assert loop is not None
+    # b is only read by the next iteration: the body outputs b', the loop does not
+    assert set(wiring(t, t.labels.index("for _ in range(n)"))) == {"in", "a", "b", "a'"}
+    assert set(loop.diagram.inner[loop.labels.index("body")].names) == {"a", "b", "a'", "b'"}
+    # mid is assigned before it is read in every iteration, so nothing carries it
+    s = scan_source(program("search.py"), function="index")
+    body = s.children[s.labels.index("while lo <= hi")]
+    assert body is not None
+    names = set(body.diagram.inner[body.labels.index("body")].names)
+    assert "mid'" not in names and {"lo'", "hi'"} <= names
+
+
+def test_rebinding_ends_liveness() -> None:
+    # x is assigned again before it is read, so the if need not output x'
+    src = "def f(c):\n    x = 0\n    if c:\n        x = 1\n    x = 2\n    return x\n"
+    t = scan_source(src, function="f")
+    assert set(wiring(t, t.labels.index("if c"))) == {"if"}
+
+
+def test_every_star_has_the_span_of_its_code() -> None:
+    spans = scan_spans(HYPOT, function="hypot", expand=1)
+    t = scan_source(HYPOT, function="hypot", expand=1)
+    lines = HYPOT.splitlines()
+
+    def text(path: str) -> str:
+        line, col, end_line, end_col = spans[path]
+        assert line == end_line
+        return lines[line - 1][col:end_col]
+
+    assert text("0") == "square(a)" and text("1") == "square(b)"
+    assert text("0.0") == "x * x" and text("0.1") == "return x * x"  # inside the inlined body
+    assert text(str(t.labels.index("math.sqrt"))) == "math.sqrt(square(a) + square(b))"
+
+    def paths(u: Term, prefix: str = "") -> list[str]:
+        out = []
+        for i, kid in enumerate(u.children):
+            out.append(f"{prefix}{i}")
+            if kid is not None:
+                out += paths(kid, f"{prefix}{i}.")
+        return out
+
+    for src, function in [(POC_MODULE, None), (program("evaluate.py"), "evaluate")]:
+        term = scan_source(src, function=function, expand=1)
+        assert set(scan_spans(src, function=function, expand=1)) == set(paths(term))
+
+
+def test_span_columns_count_characters() -> None:
+    src = "def f(x):\n    return 'é' + x\n"
+    plus = scan_source(src, function="f").labels.index("+")
+    line, col, _, end = scan_spans(src, function="f")[str(plus)]
+    assert src.splitlines()[line - 1][col:end] == "'é' + x"
+
+
+def test_programs_run_their_doctests() -> None:
+    for path in sorted(PROGRAMS.glob("*.py")):
+        spec = importlib.util.spec_from_file_location(f"program_{path.stem}", path)
+        assert spec is not None and spec.loader is not None
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        assert doctest.testmod(module).failed == 0, path.name
+
+
+@pytest.mark.parametrize("path", SCANNED, ids=lambda p: p.stem)
+def test_scanned_examples_record_how_to_repeat_the_scan(path: Path) -> None:
+    doc = json.loads(path.read_text(encoding="utf-8"))
+    c = doc["code"]
+    again = document(c["source"], name=c["name"], function=c["function"], expand=c["expand"])
+    assert again["term"] == doc["term"] and again["code"] == c
+    assert c["source"] == program(c["name"])
+
+
 def test_document_and_cli() -> None:
-    doc = document(examples.HYPOT, name="hypot.py", function="hypot", expand=1)
-    assert doc["code"] == {"language": "python", "source": examples.HYPOT}
+    doc = document(HYPOT, name="hypot.py", function="hypot", expand=1)
+    assert doc["code"]["source"] == HYPOT
+    assert (doc["code"]["name"], doc["code"]["function"], doc["code"]["expand"]) == (
+        "hypot.py",
+        "hypot",
+        1,
+    )
     assert (
         Term.from_json(doc["term"]).evaluate()
-        == scan_source(examples.HYPOT, function="hypot", expand=1).evaluate()
+        == scan_source(HYPOT, function="hypot", expand=1).evaluate()
     )
     out = io.StringIO()
     with redirect_stdout(out):

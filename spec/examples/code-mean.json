@@ -1,6 +1,6 @@
 {
  "title": "A loop with a branch",
- "source": "wiring_diagrams.code",
+ "source": "examples/python/mean.py",
  "description": "A for loop is a star filled with its body's diagram. Its wires are the iterated value (in), the variables it reads (total, count), and the ones it writes that are used afterwards (total', count'). The if inside is a star of the same kind.",
  "term": {
   "diagram": {
@@ -85,5 +85,29 @@
   "labels": ["0", "0", "for x in xs", "/", "0.0", "if-else", "return"],
   "label": "def mean_positive"
  },
- "code": {"language": "python", "source": "def mean_positive(xs):\n    total = 0\n    count = 0\n    for x in xs:\n        if x > 0:\n            total += x\n            count += 1\n    return total / count if count else 0.0\n"}
+ "code": {
+  "language": "python",
+  "source": "\"\"\"A loop with a branch\n\nA for loop is a star filled with its body's diagram. Its wires are the\niterated value (in), the variables it reads (total, count), and the ones it\nwrites that are used afterwards (total', count'). The if inside is a star of\nthe same kind.\n\"\"\"\n\n\ndef mean_positive(xs):\n    \"\"\"\n    >>> mean_positive([3, -1, 5])\n    4.0\n    >>> mean_positive([])\n    0.0\n    \"\"\"\n    total = 0\n    count = 0\n    for x in xs:\n        if x > 0:\n            total += x\n            count += 1\n    return total / count if count else 0.0\n",
+  "name": "mean.py",
+  "function": "mean_positive",
+  "expand": 0,
+  "spans": {
+   "0": [17, 12, 17, 13],
+   "1": [18, 12, 18, 13],
+   "2": [19, 4, 22, 22],
+   "2.0": [19, 8, 19, 9],
+   "2.1": [20, 8, 22, 22],
+   "2.1.0": [20, 15, 20, 16],
+   "2.1.1": [20, 11, 20, 16],
+   "2.1.2": [20, 8, 22, 22],
+   "2.1.2.0": [21, 12, 22, 22],
+   "2.1.2.0.0": [21, 12, 21, 22],
+   "2.1.2.0.1": [22, 21, 22, 22],
+   "2.1.2.0.2": [22, 12, 22, 22],
+   "3": [23, 11, 23, 24],
+   "4": [23, 39, 23, 42],
+   "5": [23, 11, 23, 42],
+   "6": [23, 4, 23, 42]
+  }
+ }
 }

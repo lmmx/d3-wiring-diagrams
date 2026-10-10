@@ -160,7 +160,7 @@ main {
 }
 
 main.editing {
-  grid-template-columns: minmax(18rem, 26rem) minmax(0, 1fr) minmax(16rem, 22rem);
+  grid-template-columns: minmax(22rem, 34rem) minmax(0, 1fr) minmax(16rem, 22rem);
 }
 
 @media (max-width: 52rem) {
@@ -192,21 +192,6 @@ main.editing {
 
 .editor-head p {
   margin: 0.25rem 0 0;
-}
-
-#doc {
-  flex: 1;
-  min-height: 16rem;
-  width: 100%;
-  resize: vertical;
-  font: 12px/1.45 ui-monospace, "SF Mono", Menlo, Consolas, monospace;
-  color: var(--fg);
-  background: var(--bg);
-  border: 1px solid var(--rule);
-  border-radius: 6px;
-  padding: 0.6rem;
-  tab-size: 1;
-  white-space: pre;
 }
 
 .actions {
@@ -265,21 +250,6 @@ main.editing {
   margin: 0;
 }
 
-#py {
-  flex: 1;
-  min-height: 14rem;
-  width: 100%;
-  resize: vertical;
-  font: 12px/1.45 ui-monospace, "SF Mono", Menlo, Consolas, monospace;
-  color: var(--fg);
-  background: var(--bg);
-  border: 1px solid var(--rule);
-  border-radius: 6px;
-  padding: 0.6rem;
-  tab-size: 4;
-  white-space: pre;
-}
-
 .row input {
   font: inherit;
   color: inherit;
@@ -289,24 +259,76 @@ main.editing {
   padding: 0.2rem 0.4rem;
 }
 
-.row input[type="number"] {
-  width: 3.5rem;
-}
-
 button.primary {
   background: var(--fg);
   color: var(--bg);
   border-color: var(--fg);
 }
 
-#code pre {
-  max-height: 22rem;
-  overflow: auto;
-  background: var(--bg);
-  border: 1px solid var(--rule);
-  border-radius: 6px;
-  padding: 0.6rem;
-  font: 12px/1.45 ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+/* code editors: the playground's grow to fill their pane; the panel's source scrolls */
+.code-editor {
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.pane .code-editor {
+  flex: 1;
+  min-height: 16rem;
+}
+
+.code-editor .cm-editor {
+  flex: 1;
+  min-height: 0;
+}
+
+#code .code-editor {
+  margin-top: 0.5rem;
+  max-height: 26rem;
+}
+
+#code .cm-editor {
+  font-size: 12px;
+}
+
+.lede {
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+.fields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 0.9rem;
+  font-size: 0.85rem;
+}
+
+.fields label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: var(--muted);
+}
+
+.fields select {
+  color: var(--fg);
+  max-width: 15rem;
+}
+
+.small {
+  font-size: 0.78rem;
+}
+
+kbd {
+  font: 0.75em ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  border: 1px solid currentColor;
+  border-radius: 3px;
+  padding: 0 0.25em;
+  opacity: 0.85;
+}
+
+.status-row {
+  min-height: 2rem;
 }
 
 #code summary {
@@ -485,6 +507,12 @@ th {
 .wd .wd-star.wd-selected {
   stroke: var(--accent);
   stroke-width: 0.012px;
+}
+
+/* stars whose code is under the cursor (and the code of the star under the pointer: code.css) */
+.wd .wd-star.wd-linked {
+  fill: var(--code-linked);
+  stroke: var(--code-linked-edge);
 }
 
 .wd .wd-cable {

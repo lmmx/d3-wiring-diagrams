@@ -1,6 +1,6 @@
 {
  "title": "Inlining is composition",
- "source": "wiring_diagrams.code (expand=1)",
+ "source": "examples/python/hypot.py",
  "description": "hypot calls square twice. Each call star has square's own interface {x, return}, so square's body diagram can be plugged into it. In the nested view each call holds square's body. In the composed view the calls are gone and the two products sit directly in hypot's dataflow: operadic composition is inlining.",
  "term": {
   "diagram": {
@@ -46,5 +46,22 @@
   "labels": ["square", "square", "+", "math.sqrt", "return"],
   "label": "def hypot"
  },
- "code": {"language": "python", "source": "import math\n\n\ndef square(x):\n    return x * x\n\n\ndef hypot(a, b):\n    return math.sqrt(square(a) + square(b))\n"}
+ "code": {
+  "language": "python",
+  "source": "\"\"\"Inlining is composition\n\nhypot calls square twice. Each call star has square's own interface\n{x, return}, so square's body diagram can be plugged into it. In the nested\nview each call holds square's body. In the composed view the calls are gone\nand the two products sit directly in hypot's dataflow: operadic composition\nis inlining.\n\"\"\"\n\nimport math\n\n\ndef square(x):\n    return x * x\n\n\ndef hypot(a, b):\n    \"\"\"\n    >>> hypot(3, 4)\n    5.0\n    \"\"\"\n    return math.sqrt(square(a) + square(b))\n",
+  "name": "hypot.py",
+  "function": "hypot",
+  "expand": 1,
+  "spans": {
+   "0": [22, 21, 22, 30],
+   "0.0": [14, 11, 14, 16],
+   "0.1": [14, 4, 14, 16],
+   "1": [22, 33, 22, 42],
+   "1.0": [14, 11, 14, 16],
+   "1.1": [14, 4, 14, 16],
+   "2": [22, 21, 22, 42],
+   "3": [22, 11, 22, 43],
+   "4": [22, 4, 22, 43]
+  }
+ }
 }

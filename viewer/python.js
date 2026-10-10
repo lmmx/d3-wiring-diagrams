@@ -24,6 +24,7 @@ export const PACKAGE_FILES = [
 
 /** @type {Promise<any> | null} */
 let ready = null;
+let loaded = false;
 
 /** Load Pyodide and the package once; later calls share the same promise. */
 function python(/** @type {(status: string) => void} */ onStatus) {
@@ -41,11 +42,40 @@ function python(/** @type {(status: string) => void} */ onStatus) {
       }),
     );
     py.runPython("import sys; sys.path.insert(0, '/lib')");
+    loaded = true;
     return py;
   })();
   ready.catch(() => (ready = null)); // let a later attempt retry after a network failure
   return ready;
 }
+
+/** A scan that failed: what went wrong, and where in the source if it is known. */
+export class ScanError extends Error {
+  /** @param {string} message @param {import("./editor.js").Diagnostic | null} where */
+  constructor(message, where) {
+    super(message);
+    this.where = where;
+  }
+}
+
+// Python's errors become data here, rather than a traceback to pick apart in JS
+const SCAN = `
+import json
+from wiring_diagrams.code import document
+
+def _scan():
+    try:
+        return {"doc": document(source, name=name, function=function, expand=expand)}
+    except SyntaxError as e:
+        line, col = e.lineno or 1, max((e.offset or 1) - 1, 0)
+        end_line, end_col = e.end_lineno or line, max((e.end_offset or 0) - 1, col + 1)
+        where = {"line": line, "column": col, "endLine": end_line, "endColumn": end_col}
+        return {"error": f"{type(e).__name__}: {e.msg} (line {line})", "where": where}
+    except KeyError as e:  # no such function
+        return {"error": str(e.args[0]), "where": None}
+
+json.dumps(_scan())
+`;
 
 /**
  * Scan Python source into a document (docs/format.md), with `code` set.
@@ -54,10 +84,10 @@ function python(/** @type {(status: string) => void} */ onStatus) {
  * @param {{name?: string, function?: string, expand?: number}} options
  * @param {(status: string) => void} onStatus
  * @returns {Promise<import("./edit.js").Doc>}
+ * @throws {ScanError} if the source does not parse or has no such function
  */
 export async function scanPython(source, options, onStatus) {
   const py = await python(onStatus);
-  onStatus("Scanning…");
   const globals = py.toPy({
     source,
     name: options.name ?? "playground.py",
@@ -65,24 +95,15 @@ export async function scanPython(source, options, onStatus) {
     expand: options.expand ?? 0,
   });
   try {
-    const json = py.runPython(
-      [
-        "import json",
-        "from wiring_diagrams.code import document",
-        "json.dumps(document(source, name=name, function=function, expand=expand))",
-      ].join("\n"),
-      { globals },
-    );
-    return JSON.parse(json);
-  } catch (e) {
-    // a PythonError's message is the whole traceback: its last line says what went
-    // wrong, and the last "line N" mention says where
-    const text = String(e instanceof Error ? e.message : e).trim();
-    const what = text.split("\n").pop() ?? text;
-    const where = [...text.matchAll(/line (\d+)/g)].pop()?.[1];
-    throw new Error(where && !what.includes(`line ${where}`) ? `${what} (line ${where})` : what);
+    const result = JSON.parse(py.runPython(SCAN, { globals }));
+    if (result.error) throw new ScanError(result.error, result.where);
+    return result.doc;
   } finally {
     globals.destroy();
-    onStatus("");
   }
+}
+
+/** Whether Pyodide has been loaded (a scan then takes milliseconds, not seconds). */
+export function pythonReady() {
+  return loaded;
 }

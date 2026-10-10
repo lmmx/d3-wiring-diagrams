@@ -53,8 +53,12 @@ jobs:
         with:
           node-version: 22
           cache: npm
-          cache-dependency-path: js/package-lock.json
+          cache-dependency-path: |
+            js/package-lock.json
+            site/package-lock.json
       - run: npm ci
+      # tsc checks viewer/ too, with CodeMirror's types from site/node_modules
+      - run: npm ci --prefix ../site
       - run: npm run check
       - run: npm test
 
@@ -68,6 +72,8 @@ jobs:
           cache: npm
           cache-dependency-path: site/package-lock.json
       - run: npm ci --prefix site
+      # the committed CodeMirror bundle is what the lockfile builds
+      - run: npm run --prefix site vendor -- --check
       # fails on any broken relative link or #anchor in the docs
       - run: npm run --prefix site build
       - run: npx playwright install --with-deps chromium

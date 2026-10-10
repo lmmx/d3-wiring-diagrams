@@ -118,10 +118,28 @@ the composition formula glues together.
 
 ## Playground
 
-**Playground** in the viewer (or `?edit` in the URL) opens a JSON editor beside
-the diagram. The editing operations live in `viewer/edit.js`. They are pure
-functions on documents in the [interchange format](format.md), tested in Node
+**Playground** in the viewer (or `?edit` in the URL) opens an editor beside
+the diagram, with a **Python** tab and a **JSON** tab. The editing operations
+live in `viewer/edit.js`. They are pure functions on documents in the
+[interchange format](format.md), tested in Node
 (`js/test/playground.test.js`).
+
+- **Write Python.** The Python tab is a code editor (below) holding the
+  source of a scanned example, or your own. **Program** picks one of the
+  programs in `examples/python/`; **Draw** lists the functions the code
+  defines, read from the editor's own syntax tree, or the whole module;
+  **Inline calls** sets `expand`. The code is scanned by
+  `wiring_diagrams.code` ([code.md](code.md)), the library's own scanner,
+  run in the browser by [Pyodide](https://pyodide.org) (`viewer/python.js`).
+  Pyodide is about 10 MB, fetched from jsDelivr the first time the code is
+  edited or scanned; the examples come pre-scanned, so viewing them needs
+  none of it. Once it has loaded, the diagram follows the code 350 ms after
+  typing stops (<kbd>Ctrl</kbd>+<kbd>Enter</kbd> scans at once), and a scan
+  that a newer one overtakes is dropped. A syntax error is marked where it
+  is, in the editor, and the last good diagram stays on screen. The
+  package's modules are served with the site, so the scan and
+  `python -m wiring_diagrams.code` agree; a test keeps the list of modules in
+  step with the package.
 
 - **Edit the JSON.** The diagram redraws 250 ms after typing stops. A document
   that does not parse leaves the last good diagram on screen and shows the
@@ -136,16 +154,48 @@ functions on documents in the [interchange format](format.md), tested in Node
   outer relation does not change; a test checks this, since it is
   functoriality.
 - **Compose term** replaces the tree by its composite, keeping the leaf labels.
-- **Python code** (the second tab) scans source with `wiring_diagrams.code`
-  ([code.md](code.md)), the library's own scanner, run in the browser by
-  [Pyodide](https://pyodide.org) (`viewer/python.js`). Pyodide is about 10 MB,
-  fetched from jsDelivr on the first scan only. The package's modules are
-  served with the site, so the scan and `python -m wiring_diagrams.code`
-  agree. A test keeps the list of modules in step with the package. Syntax
-  errors are shown with their line.
 - **Share.** The document travels in the URL fragment (`#doc=`,
   deflate-raw then base64url), so a link reproduces it exactly. **Download**
   saves it as JSON.
+
+## Code and source links
+
+Code is shown in [CodeMirror 6](https://codemirror.net): the playground's
+Python and JSON editors, and the source panel of a scanned example
+(read-only). `viewer/editor.js` configures it once: line numbers, bracket
+matching and closing, indentation, search, undo, and diagnostics. Tab
+indents; <kbd>Esc</kbd> then <kbd>Tab</kbd> moves focus out of the editor.
+CodeMirror is a set of ES modules that must share one copy of
+`@codemirror/state`, so the viewer imports a bundle,
+`viewer/vendor/codemirror.js` (145 KB gzipped), built by `site/vendor.mjs`
+with esbuild from the exact versions in `site/package-lock.json`. The bundle
+is committed, like d3, so a plain checkout runs with no build step, and CI
+rebuilds it and fails if it differs. `viewer/vendor/codemirror.d.ts`
+re-exports the packages' own types for `tsc`. Monaco, which pydantic.run
+uses, was the other candidate: it is the VS Code editor, several megabytes
+with web workers, for features (IntelliSense, a minimap) that a playground of
+short programs does not need.
+
+Highlighting has one source. The editor and the docs pages both use Lezer
+grammars and `@lezer/highlight`'s `classHighlighter`, whose `tok-*` classes are
+coloured once, for light and dark, in `viewer/code.css`. The docs are
+highlighted when the site is built (Python, JS, JSON, Rust, shell), so the pages
+ship no highlighting script, and a code block in a language the build cannot
+highlight fails the build.
+
+A scanned document's `code.spans` give each star's source
+([format.md](format.md)). `starSpans` in `viewer/edit.js` maps them to the
+renderer's star keys: `leaf:k` for the k-th leaf (the same in both views)
+and `r.<path>` for an intermediate star. Then:
+
+- hovering or selecting a star marks its code in the visible editor, and
+  scrolls it into view;
+- moving the cursor (or the selection) in the code marks the stars on those
+  lines (`renderer.link`). A leaf is marked if its code touches the lines,
+  and an intermediate star (a compound statement, an inlined call) only if
+  its code lies within them, so the cursor inside a loop marks the
+  operations on its line, not the whole loop. In an inlined call the cursor
+  in the callee's body marks every inlined copy.
 
 ## Site
 
@@ -156,7 +206,15 @@ same navigation bar as the docs pages, so the playground links back to the
 site. The build fails if the marker is missing. It writes the result to `dist/`, which
 `vercel.json` deploys. The build fails on a relative link or `#anchor` that
 does not resolve. Links to repository files outside the site go to GitHub.
-`site/smoke.mjs` loads the built site in Chromium. It checks every navigation
-link, the viewer's half-adder relation, a playground plug-in, and a Python
-scan in Pyodide (including a syntax error's line), and fails on any console
-error or failed request. CI runs both.
+`site/smoke.mjs` loads the built site in Chromium. It checks:
+
+- every navigation link;
+- the viewer's half-adder relation, and a playground plug-in;
+- a scanned example's highlighted source, and a hovered star marking its code;
+- the playground's Python tab: the scan options preselected, the cursor in
+  `square` marking both inlined copies, an edit rescanned in Pyodide and
+  redrawn, the function list following the code, and a syntax error marked
+  in the editor;
+- highlighted code blocks in the docs.
+
+It fails on any console error or failed request. CI runs both.

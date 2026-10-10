@@ -1,5 +1,8 @@
 """Write spec/examples/*.json and spec/conformance/*.json from the Python reference.
 
+The examples are the paper's (``wiring_diagrams.examples``) and scans of the
+programs in ``examples/python/`` (``PROGRAMS`` below).
+
     python scripts/generate.py           # rewrite the files
     python scripts/generate.py --check   # exit 1 if any file is out of date
 
@@ -12,6 +15,7 @@ stable across versions, so the files are byte-for-byte reproducible.
 from __future__ import annotations
 
 import argparse
+import ast
 import itertools
 import json
 import random
@@ -27,14 +31,32 @@ from wiring_diagrams import (
     eq,
     evaluation,
     examples,
-    externalize,
     internal_hom,
     internalize,
     rel,
 )
+from wiring_diagrams import code as scan
 
 ROOT = Path(__file__).resolve().parent.parent
 SPEC = ROOT / "spec"
+PROGRAM_DIR = ROOT / "examples" / "python"
+
+# (file in examples/python, function to scan or None for the module, levels of calls to expand),
+# in the order the viewer lists them. Each program's docstring gives the title (first line) and
+# the description (the rest).
+PROGRAMS: list[tuple[str, str | None, int]] = [
+    ("hypot.py", "hypot", 1),
+    ("pipeline.py", "report", 1),
+    ("newton.py", "sqrt", 1),
+    ("mean.py", "mean_positive", 0),
+    ("fibonacci.py", "fib", 0),
+    ("search.py", "index", 0),
+    ("evaluate.py", "evaluate", 1),
+    ("config.py", "load", 0),
+    ("account.py", None, 1),
+    ("wordcount.py", "top_words", 1),
+    ("module.py", None, 0),
+]
 
 TYPES = ("A", "B")
 NAMES = ("a", "b", "c", "d", "é", "😀")
@@ -68,7 +90,10 @@ class Gen:
         return Star({n: self.pick(TYPES) for n in names})
 
     def diagram(
-        self, inner: list[Star] | None = None, outer: Star | None = None, max_arity: int = 3
+        self,
+        inner: list[Star] | None = None,
+        outer: Star | None = None,
+        max_arity: int = 3,
     ) -> WiringDiagram:
         if inner is None:
             inner = [self.star() for _ in range(self.below(max_arity + 1))]
@@ -101,7 +126,10 @@ class Gen:
 
     def relation(self, star: Star) -> rel.Relation:
         universe = list(itertools.product(*(DOMAINS[t] for t in star.types)))
-        return rel.Relation(star, [self.pick(universe) for _ in range(self.below(6))] if universe else [])
+        return rel.Relation(
+            star,
+            [self.pick(universe) for _ in range(self.below(6))] if universe else [],
+        )
 
     def partition(self, star: Star) -> eq.Partition:
         return eq.Partition(star, [self.below(3) for _ in range(len(star))])
@@ -192,7 +220,11 @@ def permute() -> Iterator[dict[str, Any]]:
     for _ in range(50):
         phi = g.diagram(max_arity=4)
         sigma = g.shuffle(phi.arity)
-        yield {"diagram": phi.to_json(), "sigma": sigma, "expected": phi.permute(sigma).to_json()}
+        yield {
+            "diagram": phi.to_json(),
+            "sigma": sigma,
+            "expected": phi.permute(sigma).to_json(),
+        }
     phi = g.diagram(inner=[Star({"a": "A"}), Star({})])
     for sigma in ([0], [0, 0], [1, 2]):
         yield {"diagram": phi.to_json(), "sigma": sigma, "error": "not_a_permutation"}
@@ -231,7 +263,12 @@ def closed() -> Iterator[dict[str, Any]]:
         psi = g.diagram(max_arity=4)
         m = g.below(psi.arity + 1)
         curried = internalize(psi, m)
-        yield {"op": "internalize", "diagram": psi.to_json(), "m": m, "expected": curried.to_json()}
+        yield {
+            "op": "internalize",
+            "diagram": psi.to_json(),
+            "m": m,
+            "expected": curried.to_json(),
+        }
         ys = [y.to_json() for y in psi.inner[m:]]
         yield {
             "op": "externalize",
@@ -241,7 +278,12 @@ def closed() -> Iterator[dict[str, Any]]:
             "expected": psi.to_json(),
         }
     psi = g.diagram(inner=[Star({"a": "A"})])
-    yield {"op": "internalize", "diagram": psi.to_json(), "m": 2, "error": "split_out_of_range"}
+    yield {
+        "op": "internalize",
+        "diagram": psi.to_json(),
+        "m": 2,
+        "error": "split_out_of_range",
+    }
     yield {
         "op": "externalize",
         "diagram": psi.to_json(),
@@ -302,7 +344,11 @@ def eq_cases() -> Iterator[dict[str, Any]]:
         }
     phi = WiringDiagram(["A"], [{"a": 0, "b": 0}], {"o": 0})
     for bad in ([0], [0, -1], [0, 0, 0]):
-        yield {"diagram": phi.to_json(), "partitions": [bad], "error": "invalid_partition"}
+        yield {
+            "diagram": phi.to_json(),
+            "partitions": [bad],
+            "error": "invalid_partition",
+        }
 
 
 FAMILIES: dict[str, Callable[[], Iterator[dict[str, Any]]]] = {
@@ -328,11 +374,36 @@ def pretty(obj: Any, depth: int = 0) -> str:
     """Indented JSON, except that containers of scalars (rows, wirings) stay on one line."""
     pad, inner = " " * depth, " " * (depth + 1)
     if isinstance(obj, dict) and any(isinstance(v, (dict, list)) for v in obj.values()):
-        items = [f"{inner}{json.dumps(k, ensure_ascii=False)}: {pretty(v, depth + 1)}" for k, v in obj.items()]
+        items = [
+            f"{inner}{json.dumps(k, ensure_ascii=False)}: {pretty(v, depth + 1)}"
+            for k, v in obj.items()
+        ]
         return "{\n" + ",\n".join(items) + "\n" + pad + "}"
     if isinstance(obj, list) and any(isinstance(v, (dict, list)) for v in obj):
-        return "[\n" + ",\n".join(inner + pretty(v, depth + 1) for v in obj) + "\n" + pad + "]"
+        return (
+            "[\n"
+            + ",\n".join(inner + pretty(v, depth + 1) for v in obj)
+            + "\n"
+            + pad
+            + "]"
+        )
     return json.dumps(obj, ensure_ascii=False)
+
+
+def program(file: str, function: str | None, expand: int) -> dict[str, Any]:
+    """The example document of a program in examples/python: its scan, titled by its docstring."""
+    source = (PROGRAM_DIR / file).read_text(encoding="utf-8")
+    docstring = ast.get_docstring(ast.parse(source))
+    if not docstring:
+        raise ValueError(
+            f"examples/python/{file} needs a docstring: a title line, then a description"
+        )
+    title, _, rest = docstring.partition("\n")
+    doc = scan.document(source, name=file, function=function, expand=expand)
+    doc["title"] = title.strip()
+    doc["source"] = f"examples/python/{file}"
+    doc["description"] = " ".join(rest.split())
+    return doc
 
 
 def outputs() -> dict[Path, str]:
@@ -343,17 +414,40 @@ def outputs() -> dict[Path, str]:
     for make in examples.ALL:
         ex = make()
         out[SPEC / "examples" / f"{ex.slug}.json"] = pretty(ex.to_json()) + "\n"
-        index.append({"slug": ex.slug, "title": ex.title, "source": ex.source})
+        index.append(
+            {"slug": ex.slug, "title": ex.title, "source": ex.source, "kind": "paper"}
+        )
+    for file, function, expand in PROGRAMS:
+        doc = program(file, function, expand)
+        slug = "code-" + file.removesuffix(".py")
+        out[SPEC / "examples" / f"{slug}.json"] = pretty(doc) + "\n"
+        index.append(
+            {
+                "slug": slug,
+                "title": doc["title"],
+                "source": doc["source"],
+                "kind": "program",
+            }
+        )
     out[SPEC / "examples" / "index.json"] = pretty(index) + "\n"
     return out
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    parser.add_argument("--check", action="store_true", help="fail if any file is stale")
+    parser.add_argument(
+        "--check", action="store_true", help="fail if any file is stale"
+    )
     args = parser.parse_args()
     stale = []
-    for path, text in outputs().items():
+    produced = outputs()
+    # examples that are no longer produced (a renamed program, say) are stale too
+    for path in sorted((SPEC / "examples").glob("*.json")):
+        if path not in produced:
+            stale.append(path.relative_to(ROOT))
+            if not args.check:
+                path.unlink()
+    for path, text in produced.items():
         current = path.read_text(encoding="utf-8") if path.exists() else None
         if current == text:
             continue

@@ -33,7 +33,12 @@ The paper's operad and everything it constructs on it:
     with the dataflow of its body.
   - Calls into the same module have the callee's own star, so **inlining is
     operadic composition**.
-  - In the playground the same scanner runs in the browser.
+  - Every star records the code it came from, so the viewer links stars and
+    source both ways.
+  - [`examples/python/`](examples/python/) holds eleven small programs, each
+    tested by its doctests and scanned into `spec/examples/`.
+  - In the playground the same scanner runs in the browser, behind a code
+    editor (CodeMirror), and the diagram follows your edits.
 - **Laws** checked by property tests in every language: identity,
   associativity, equivariance, functoriality of each algebra, and the
   closed-structure bijection.
@@ -46,9 +51,10 @@ The paper's operad and everything it constructs on it:
 python/   pure-Python reference implementation (no dependencies)
 rust/     Rust crate (serde behind the default feature)
 js/       ES modules: the same core + layout.js, scene.js, render.js (d3)
-viewer/   the viewer and playground (plain HTML/CSS/JS, vendored d3)
+viewer/   the viewer and playground (plain HTML/CSS/JS, vendored d3 and CodeMirror)
 site/     builds README + docs + viewer into dist/ (deployed by vercel.json)
-spec/     JSON Schema, the paper's examples, and the shared conformance suite
+spec/     JSON Schema, the examples, and the shared conformance suite
+examples/ python/: programs scanned into spec/examples/code-*.json
 scripts/  generate.py: writes spec/ from the Python reference
 docs/     theory, format, code, visualisation, performance, journal
 ```
@@ -112,15 +118,17 @@ createRenderer(d3, document.querySelector("svg")).draw(phi);
 - Hover a cable to see everything composition glues to it.
 - Click a star to see its relation.
 
-The **Playground** button opens a JSON editor beside the diagram. It accepts
-any example, term or diagram, including `term.to_json()` from Python or
-`serde_json::to_string(&term)` from Rust. You can:
+The **Playground** button opens an editor beside the diagram. Its **Python**
+tab draws the code you write: pick one of the example programs or start your
+own, choose the function to draw and how many levels of calls to inline, and
+the diagram follows your edits. Hover a star to see its code; put the cursor in
+the code to see its stars. The **JSON** tab accepts any example, term or
+diagram, including `term.to_json()` from Python or
+`serde_json::to_string(&term)` from Rust. You can also:
 - plug sub-diagrams from the examples into a star (Spivak's plug-and-play,
   §5.1), with the relations kept consistent;
 - collapse a sub-diagram back into one star;
 - compose the whole term;
-- scan Python code (the **Python code** tab: paste a module, name a function
-  if you like, and choose how many levels of calls to expand);
 - share the result as a link.
 
 **Site**: `just site` builds the docs pages, the viewer and the playground into
@@ -132,8 +140,11 @@ To run it locally, `just serve` and open <http://localhost:8000/viewer/>.
 `just` runs the same lint and test steps as CI: ruff, mypy `--strict` and
 pytest; rustfmt, clippy (pedantic, `-D warnings`) and cargo test with and
 without serde; `tsc --checkJs --strict` and `node --test`. After changing
-Python behaviour, run `just generate` to rewrite `spec/`. The Python tests
-fail while it is stale.
+Python behaviour or a program in `examples/python/`, run `just generate` to
+rewrite `spec/`. The Python tests fail while it is stale. After changing
+CodeMirror's version or what the viewer imports from it
+(`site/codemirror.entry.js`), run `just vendor`; CI fails while the bundle is
+stale.
 
 Performance figures are in [docs/performance.md](docs/performance.md), and the
 layout algorithm is in [docs/visualisation.md](docs/visualisation.md). Work is

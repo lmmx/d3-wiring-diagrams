@@ -17,6 +17,8 @@ import {
   parse,
   plugIn,
   prettyJSON,
+  starSpans,
+  starsOnLines,
 } from "../../viewer/edit.js";
 import { readdirSync } from "node:fs";
 import { fileURLToPath } from "node:url";
@@ -106,4 +108,41 @@ it("documents round-trip through share links and pretty printing", async () => {
 it("the playground loads every module of the Python package into Pyodide", () => {
   const dir = fileURLToPath(new URL("../../python/src/wiring_diagrams/", import.meta.url));
   assert.deepStrictEqual([...PACKAGE_FILES].sort(), readdirSync(dir).filter((f) => f.endsWith(".py")).sort());
+});
+
+// -- scanned code: stars ↔ source spans ------------------------------------------------------
+
+it("every star of every scanned example has the span of its code, by scene key", async () => {
+  const { buildScene } = await import("../src/scene.js");
+  for (const doc of docs.filter((d) => d.code)) {
+    const { term } = parse(normalize(doc));
+    const spans = starSpans(term, doc.code.spans);
+    for (const nested of [true, false]) {
+      const keys = buildScene(term, { nested }).stars.filter((s) => s.role !== "outer").map((s) => s.key);
+      // flat view: only the leaves; nested: leaves and intermediate stars
+      assert.deepEqual(new Set(keys), new Set([...spans.keys()].filter((k) => nested || k.startsWith("leaf:"))), doc.title);
+    }
+  }
+});
+
+it("a star's span is the code it was scanned from", () => {
+  const doc = bySlug("code-hypot");
+  const { term } = parse(normalize(doc));
+  const spans = starSpans(term, doc.code.spans);
+  const lines = doc.code.source.split("\n");
+  const text = (/** @type {string} */ key) => {
+    const [line, col, endLine, endCol] = /** @type {number[]} */ (spans.get(key));
+    assert.equal(line, endLine);
+    return lines[line - 1].slice(col, endCol);
+  };
+  assert.equal(text("r.0"), "square(a)"); // the first call, filled with square's body
+  assert.equal(text("leaf:0"), "x * x"); // inside it
+  assert.deepEqual(term.leafLabels().slice(0, 2), ["*", "return"]);
+  // the cursor on square's body marks both inlined copies, and not the calls around them
+  const line = lines.findIndex((l) => l.includes("return x * x")) + 1;
+  assert.deepEqual([...starsOnLines(spans, line, line)].sort(), ["leaf:0", "leaf:1", "leaf:2", "leaf:3"]);
+  // a whole call's line marks the call and everything on that line
+  const call = lines.findIndex((l) => l.includes("math.sqrt")) + 1;
+  const marked = starsOnLines(spans, call, call);
+  assert.ok(marked.has("r.0") && marked.has("r.1") && !marked.has("leaf:0"));
 });

@@ -25,11 +25,18 @@ identifier can (``return``, ``if``, ``in``, ``0``, ``x'``, ``*args``), so it nev
 collides with a variable or parameter name.
 
 All cables have one type, ``py``: the scan describes dataflow, not types.
+
+Every star also remembers the code it came from, as a *span*
+``(line, column, end_line, end_column)``: lines count from 1, columns are
+characters from 0, and the end is exclusive. :func:`document` records them
+by the star's path in the term (``"2"``, ``"2.0"``, …), so a viewer can link
+each star to its source.
 """
 
 from __future__ import annotations
 
 import ast
+import copy
 import sys
 from collections.abc import Iterable, Sequence
 from dataclasses import dataclass, field
@@ -39,12 +46,15 @@ from typing import Any
 from .diagram import WiringDiagram
 from .term import Term
 
-__all__ = ["document", "scan_path", "scan_source"]
+__all__ = ["Span", "document", "scan_path", "scan_source", "scan_spans"]
 
 TYPE = "py"
 MAX_LABEL = 28
 
 _FunctionDef = ast.FunctionDef | ast.AsyncFunctionDef
+
+Span = tuple[int, int, int, int]
+"""``(line, column, end_line, end_column)``: lines from 1, columns in characters from 0."""
 
 _BINOPS: dict[type[ast.AST], str] = {
     ast.Add: "+", ast.Sub: "-", ast.Mult: "*", ast.Div: "/", ast.FloorDiv: "//", ast.Mod: "%",
@@ -70,24 +80,38 @@ def _source(node: ast.AST) -> str:
 # -- the diagram under construction -----------------------------------------------------
 
 
+@dataclass(frozen=True)
+class _Scan:
+    """A scanned term, and the spans of its stars by path ("0", "0.2", …)."""
+
+    term: Term
+    spans: dict[str, Span]
+
+
 @dataclass
 class _Diagram:
-    """Cables and inner stars of one diagram, in the order they are created."""
+    """Cables and inner stars of one diagram, in the order they are created.
+
+    ``here`` is the span of the code being translated: each new star takes it.
+    """
 
     cables: int = 0
     inner: list[dict[str, int]] = field(default_factory=list)
-    children: list[Term | None] = field(default_factory=list)
+    children: list[_Scan | None] = field(default_factory=list)
     labels: list[str | None] = field(default_factory=list)
+    spans: list[Span | None] = field(default_factory=list)
     globals: dict[str, int] = field(default_factory=dict)
+    here: Span | None = None
 
     def cable(self) -> int:
         self.cables += 1
         return self.cables - 1
 
-    def star(self, label: str, wires: dict[str, int], child: Term | None = None) -> None:
+    def star(self, label: str, wires: dict[str, int], child: _Scan | None = None) -> None:
         self.inner.append(wires)
         self.children.append(child)
         self.labels.append(label)
+        self.spans.append(self.here)
 
     def op(self, label: str, args: Sequence[int], **named: int) -> int:
         """A star taking ``args`` on wires 0, 1, … and giving a value on ``return``."""
@@ -95,9 +119,16 @@ class _Diagram:
         self.star(label, {**{str(i): c for i, c in enumerate(args)}, **named, "return": out})
         return out
 
-    def term(self, outer: dict[str, int], label: str | None) -> Term:
+    def term(self, outer: dict[str, int], label: str | None) -> _Scan:
         phi = WiringDiagram([TYPE] * self.cables, self.inner, outer)
-        return Term(phi, self.children, self.labels, label)
+        term = Term(phi, [k.term if k else None for k in self.children], self.labels, label)
+        spans: dict[str, Span] = {}
+        for i, (span, kid) in enumerate(zip(self.spans, self.children, strict=True)):
+            if span is not None:
+                spans[str(i)] = span
+            if kid is not None:
+                spans.update({f"{i}.{path}": s for path, s in kid.spans.items()})
+        return _Scan(term, spans)
 
 
 # -- names read and written ---------------------------------------------------------------
@@ -185,6 +216,30 @@ class _Names(ast.NodeVisitor):
         self.generic_visit(node)
 
 
+def _live_before(s: ast.stmt, live_after: set[str]) -> set[str]:
+    """Names read before ``s`` rebinds them, by ``s`` or by what runs after it.
+
+    Only plain assignments to names (``x = …``, ``a, b = …``) count as
+    rebinding: a compound statement might not run its assignments.
+    """
+    killed: set[str] = set()
+    if isinstance(s, ast.Assign | ast.AnnAssign) and s.value is not None:
+        targets = s.targets if isinstance(s, ast.Assign) else [s.target]
+        for t in targets:
+            if all(isinstance(n, ast.Name | ast.Tuple | ast.List | ast.Starred | ast.expr_context)
+                   for n in ast.walk(t)):  # fmt: skip
+                killed |= _Names.of([t]).stores
+    return (live_after - killed) | _Names.of([s]).loads
+
+
+def _live_into(stmts: Sequence[ast.stmt]) -> set[str]:
+    """Names ``stmts`` read before writing them: what a loop body takes from the last iteration."""
+    live: set[str] = set()
+    for s in reversed(stmts):
+        live = _live_before(s, live)
+    return live
+
+
 def _all_args(args: ast.arguments) -> list[ast.arg]:
     extra = [a for a in (args.vararg, args.kwarg) if a is not None]
     return [*args.posonlyargs, *args.args, *args.kwonlyargs, *extra]
@@ -229,21 +284,42 @@ class _Signature:
 
 @dataclass
 class _Context:
-    """What a scan knows about the module: its functions and classes."""
+    """What a scan knows about the module: its source, functions and classes."""
 
+    lines: list[bytes]  # the source's lines, encoded as `ast` measures columns
     functions: dict[str, _FunctionDef]  # "f" and "Class.method"
     expand: int
     stack: tuple[str, ...]  # the function being drawn, then the calls expanded into it
 
     def enter(self, qualname: str) -> _Context:
-        return _Context(self.functions, self.expand, (*self.stack, qualname))
+        return _Context(self.lines, self.functions, self.expand, (*self.stack, qualname))
+
+    def span(self, *nodes: ast.AST) -> Span | None:
+        """From the start of the first node to the end of the last (``None`` if unplaced)."""
+        placed = [n for n in nodes if getattr(n, "end_lineno", None) is not None]
+        if not placed:
+            return None
+        first, last = placed[0], placed[-1]
+        line, end_line = first.lineno, last.end_lineno  # type: ignore[attr-defined]
+        assert end_line is not None
+        return (
+            line,
+            self._column(line, first.col_offset),  # type: ignore[attr-defined]
+            end_line,
+            self._column(end_line, last.end_col_offset),  # type: ignore[attr-defined]
+        )
+
+    def _column(self, line: int, offset: int) -> int:
+        # `ast` columns are UTF-8 byte offsets; spans count characters
+        text = self.lines[line - 1] if 0 < line <= len(self.lines) else b""
+        return offset if text.isascii() else len(text[:offset].decode("utf-8", "replace"))
 
     def may_expand(self, qualname: str) -> bool:
         """Expand ``expand`` levels of calls, never into a function already on the stack."""
         return len(self.stack) <= self.expand and qualname not in self.stack
 
 
-def _function_term(qualname: str, fn: _FunctionDef, ctx: _Context) -> Term:
+def _function_term(qualname: str, fn: _FunctionDef, ctx: _Context) -> _Scan:
     d = _Diagram()
     sig = _Signature.of(fn.args)
     env = {var: d.cable() for _, var in sig.wires()}
@@ -273,18 +349,31 @@ class _Body:
 
     # -- statements -------------------------------------------------------------------
 
+    def located(self, node: ast.AST) -> Span | None:
+        """Make ``node`` the code new stars come from; returns what to restore."""
+        saved = self.d.here
+        self.d.here = self.ctx.span(node) or saved
+        return saved
+
     def block(self, stmts: Sequence[ast.stmt], env: dict[str, int], live_out: set[str]) -> None:
         """Translate ``stmts`` in order, updating ``env``; ``live_out`` is read afterwards."""
         later: list[set[str]] = []
         live = set(live_out)
         for s in reversed(stmts):
             later.append(set(live))
-            live |= _Names.of([s]).loads
+            live = _live_before(s, live)
         later.reverse()
         for s, live_after in zip(stmts, later, strict=True):
             self.statement(s, env, live_after)
 
     def statement(self, s: ast.stmt, env: dict[str, int], live: set[str]) -> None:
+        saved = self.located(s)
+        try:
+            self._statement(s, env, live)
+        finally:
+            self.d.here = saved
+
+    def _statement(self, s: ast.stmt, env: dict[str, int], live: set[str]) -> None:
         d = self.d
         match s:
             case ast.Expr(value=v):
@@ -327,13 +416,13 @@ class _Body:
                 ast.For(target=target, iter=it, body=body, orelse=orelse)
                 | ast.AsyncFor(target=target, iter=it, body=body, orelse=orelse)
             ):
-                self.compound(f"for {_source(target)} in {_source(it)}", {"in": self.expr(it, env)},
+                self.compound(f"for {_target(target)} in {_source(it)}", {"in": self.expr(it, env)},
                               [("body", body), ("else", orelse)], env, live,
-                              carried=_Names.of([s]).loads, target=target)  # fmt: skip
+                              carried=_live_into(body), target=target)  # fmt: skip
             case ast.While(test=test, body=body, orelse=orelse):
                 self.compound("while " + _source(test), {},
                               [("body", [ast.Expr(test), *body]), ("else", orelse)], env, live,
-                              carried=_Names.of([s]).loads)  # fmt: skip
+                              carried=_live_into([ast.Expr(test), *body]))  # fmt: skip
             case ast.With(items=items, body=body) | ast.AsyncWith(items=items, body=body):
                 wires = {"with" if i == 0 else f"with {i}": self.expr(it.context_expr, env)
                          for i, it in enumerate(items)}  # fmt: skip
@@ -397,25 +486,34 @@ class _Body:
         writes = sorted((names.stores | extra_stores) & live)
         returns = names.returns
 
-        inner = _Diagram()
+        inner = _Diagram(here=self.d.here)
         inner_env = {r: inner.cable() for r in reads}
         outer = {**{w: inner.cable() for w in wires}, **{r: inner_env[r] for r in reads}}
         inner_ret = inner.cable() if returns else -1
         written = {w: inner.cable() for w in writes}
+        # a loop body also outputs what only its next iteration reads: inside the loop's
+        # star that value ends at the body (a dangling cable), and the loop's star does
+        # not output it
+        next_iteration = sorted((names.stores & (carried or set())) - set(writes))
+        body_written = {**written, **{w: inner.cable() for w in next_iteration}}
         sub = self.sub(inner, inner_ret)
         for name, body, pattern in paired:
             branch_env = dict(inner_env)
             if target is not None and name == "body":
                 # the loop variable is an item of the iterated value
-                item = inner.op("item", [outer["in"]])
-                sub.bind(target, item, branch_env)
+                saved = sub.located(target)
+                sub.bind(target, inner.op("item", [outer["in"]]), branch_env)
+                inner.here = saved
             for w, t in bound:
                 if t is not None:
                     sub.bind(t, outer[w], branch_env)
             if pattern is not None:
+                saved = sub.located(pattern)
                 for captured in sorted(_Names.of([pattern]).stores):
                     branch_env[captured] = inner.op("capture " + captured, [outer["match"]])
-            sub.branch(name, body, branch_env, written, inner_ret, live | (carried or set()))
+                inner.here = saved
+            outputs = body_written if name == "body" else written
+            sub.branch(name, body, branch_env, outputs, inner_ret, live | (carried or set()))
         outer.update({f"{w}'": c for w, c in written.items()})
         if returns:
             outer["return"] = inner_ret
@@ -454,7 +552,9 @@ class _Body:
         star.update({f"{w}'": written[w] for w in writes})
         if names.returns:
             star["return"] = ret
+        saved, d.here = d.here, self.ctx.span(*body) or d.here
         d.star(name, star, inner.term(outer, name))
+        d.here = saved
 
     def bind(self, target: ast.expr, value: int, env: dict[str, int]) -> None:
         d = self.d
@@ -490,6 +590,13 @@ class _Body:
         return self.d.globals[name]
 
     def expr(self, e: ast.expr, env: dict[str, int]) -> int:
+        saved = self.located(e)
+        try:
+            return self._expr(e, env)
+        finally:
+            self.d.here = saved
+
+    def _expr(self, e: ast.expr, env: dict[str, int]) -> int:
         d = self.d
         match e:
             case ast.Constant():
@@ -629,9 +736,19 @@ class _Body:
 
 
 def _load(target: ast.expr) -> ast.expr:
-    """The same target read instead of written (for ``x += 1``, ``del x``)."""
-    node = ast.parse(ast.unparse(target), mode="eval").body
+    """The same target read instead of written (for ``x += 1``, ``del x``), in the same place."""
+    node = copy.deepcopy(target)
+    for n in ast.walk(node):
+        if hasattr(n, "ctx"):
+            n.ctx = ast.Load()
     return node
+
+
+def _target(target: ast.expr) -> str:
+    """A loop target as written: ``k, v`` rather than ``(k, v)``."""
+    if isinstance(target, ast.Tuple) and target.elts:
+        return _label(", ".join(ast.unparse(e) for e in target.elts))
+    return _source(target)
 
 
 def _dotted(e: ast.expr) -> str | None:
@@ -653,9 +770,10 @@ def _bind_exception(h: ast.ExceptHandler) -> ast.stmt:
     """``except E as e`` binds ``e``: model it as ``e = <exception>``."""
     if not h.name:
         return ast.Pass()
-    return ast.Assign(
+    assign = ast.Assign(
         targets=[ast.Name(h.name, ast.Store())], value=ast.Name("<exception>", ast.Load())
     )
+    return ast.fix_missing_locations(ast.copy_location(assign, h))
 
 
 # -- modules, classes, packages -------------------------------------------------------------
@@ -676,9 +794,10 @@ def _signature_star(d: _Diagram, fn: _FunctionDef) -> dict[str, int]:
     return {w: d.cable() for w, _ in [*_Signature.of(fn.args).wires(), ("return", "")]}
 
 
-def _container_term(label: str, body: Sequence[ast.stmt], ctx: _Context, prefix: str) -> Term:
+def _container_term(label: str, body: Sequence[ast.stmt], ctx: _Context, prefix: str) -> _Scan:
     d = _Diagram()
     for s in body:
+        d.here = ctx.span(s)
         if isinstance(s, ast.FunctionDef | ast.AsyncFunctionDef):
             qualname = prefix + s.name
             d.star(
@@ -701,8 +820,20 @@ def _container_term(label: str, body: Sequence[ast.stmt], ctx: _Context, prefix:
     if rest:
         inner = _Diagram()
         _Body(inner, ctx, -1, None, ()).block(rest, {}, set())
+        d.here = ctx.span(*rest)
         d.star("statements", {}, inner.term({}, "statements"))
     return d.term({}, label)
+
+
+def _scan(source: str, name: str, function: str | None, expand: int) -> _Scan:
+    tree = ast.parse(source, filename=name)
+    lines = source.replace("\r\n", "\n").replace("\r", "\n").encode("utf-8").split(b"\n")
+    ctx = _Context(lines, _collect(tree.body), expand, ())
+    if function is None:
+        return _container_term(name, tree.body, ctx, "")
+    if function not in ctx.functions:
+        raise KeyError(f"no function {function!r} in {name}; found {sorted(ctx.functions)}")
+    return _function_term(function, ctx.functions[function], ctx.enter(function))
 
 
 def scan_source(
@@ -721,36 +852,49 @@ def scan_source(
         SyntaxError: if ``source`` does not parse.
         KeyError: if ``function`` is not defined at the top level or in a class.
     """
-    tree = ast.parse(source, filename=name)
-    ctx = _Context(_collect(tree.body), expand, ())
-    if function is None:
-        return _container_term(name, tree.body, ctx, "")
-    if function not in ctx.functions:
-        raise KeyError(f"no function {function!r} in {name}; found {sorted(ctx.functions)}")
-    return _function_term(function, ctx.functions[function], ctx.enter(function))
+    return _scan(source, name, function, expand).term
 
 
-def scan_path(path: str | Path, *, expand: int = 0) -> Term:
-    """A file's module diagram, or a directory's: one star per module and subpackage."""
-    p = Path(path)
+def scan_spans(
+    source: str, *, name: str = "<source>", function: str | None = None, expand: int = 0
+) -> dict[str, Span]:
+    """Where each star of :func:`scan_source`'s term comes from, by its path in the term.
+
+    A path is the slot indices from the root, joined by dots: ``"2"`` is the
+    root diagram's third inner star, ``"2.0"`` the first inner star of the
+    term filling it. Stars that no code produced (none, at present) are absent.
+    """
+    return _scan(source, name, function, expand).spans
+
+
+def _scan_path(p: Path, expand: int) -> _Scan:
     if p.is_file():
-        return scan_source(p.read_text(encoding="utf-8"), name=p.name, expand=expand)
+        return _scan(p.read_text(encoding="utf-8"), p.name, None, expand)
     d = _Diagram()
     for child in sorted(p.iterdir()):
         if child.name.startswith(".") or child.name == "__pycache__":
             continue
         if child.is_dir() and any(child.rglob("*.py")):
-            d.star(child.name + "/", {}, scan_path(child, expand=expand))
+            d.star(child.name + "/", {}, _scan_path(child, expand))
         elif child.suffix == ".py":
-            d.star(child.name, {}, scan_path(child, expand=expand))
+            d.star(child.name, {}, _scan_path(child, expand))
     return d.term({}, p.name + "/")
+
+
+def scan_path(path: str | Path, *, expand: int = 0) -> Term:
+    """A file's module diagram, or a directory's: one star per module and subpackage."""
+    return _scan_path(Path(path), expand).term
 
 
 def document(
     source: str, *, name: str = "<source>", function: str | None = None, expand: int = 0
 ) -> dict[str, Any]:
-    """An example document (docs/format.md) holding the scan and the source it came from."""
-    term = scan_source(source, name=name, function=function, expand=expand)
+    """An example document (docs/format.md) holding the scan and the source it came from.
+
+    ``code`` records how to repeat the scan (``name``, ``function``, ``expand``)
+    and the span of each star (:func:`scan_spans`).
+    """
+    scan = _scan(source, name, function, expand)
     what = f"function {function}" if function else f"module {name}"
     return {
         "title": f"{what} (scanned)",
@@ -761,8 +905,15 @@ def document(
             + (f"; calls into the module are expanded {expand} level(s) deep" if expand else "")
             + "."
         ),
-        "term": term.to_json(),
-        "code": {"language": "python", "source": source},
+        "term": scan.term.to_json(),
+        "code": {
+            "language": "python",
+            "source": source,
+            "name": name,
+            "function": function,
+            "expand": expand,
+            "spans": {path: list(span) for path, span in scan.spans.items()},
+        },
     }
 
 

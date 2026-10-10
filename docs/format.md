@@ -70,9 +70,19 @@ one per wire in canonical order, `[0, 0, 1]`.
   with one relation per leaf of `term`, in order. For `rel_recursive`, `term`
   evaluates to `φ: X → [Z ⇒ Z]` and `expected` is the greatest recursive
   relation on `Z`.
-- `code` is `{language: "python", source}`: the source a scanned term came
-  from ([code.md](code.md)). The viewer shows it, and the playground's Python
-  tab starts from it.
+- `code` is `{language: "python", source, name?, function?, expand?, spans?}`:
+  the source a scanned term came from, and how it was scanned
+  ([code.md](code.md)). `name`, `function` (`null` for the whole module) and
+  `expand` repeat the scan: `document(source, name=…, function=…,
+  expand=…)` gives the same document. `spans` maps the path of each star in
+  the term (slot indices from the root, joined by dots: `"2"`, `"2.0"`) to the
+  code it came from, `[line, column, end line, end column]`, with lines from
+  1, columns in code points from 0, and the end exclusive. The viewer shows
+  the source, links it to the stars, and opens it in the playground's
+  Python editor.
+
+`spec/examples/index.json` lists the examples, in order, as
+`{slug, title, source, kind}`, where `kind` is `"paper"` or `"program"`.
 
 ## Errors
 

@@ -99,7 +99,8 @@ export function layout(phi, options = {}) {
 /**
  * Radii grow with the square root of the wire count (times the weight). They
  * are scaled so the disks cover at most FILL of the outer disk, or more when
- * some stars will hold sub-diagrams, and capped so that any two still fit.
+ * some stars will hold sub-diagrams, and capped so that any two still fit
+ * (a lone star holding a sub-diagram gets more).
  *
  * @param {import("./diagram.js").WiringDiagram} phi @param {readonly number[] | undefined} weights
  */
@@ -111,7 +112,9 @@ function starRadii(phi, weights) {
   const area = raw.reduce((s, r) => s + r * r, 0);
   const fill = w.some((v) => v > 1) ? 0.55 : FILL;
   const scale = Math.sqrt(fill / area);
-  const cap = n === 1 ? 0.5 : n === 2 ? 0.43 : 0.38;
+  // a lone star that holds a sub-diagram (a function whose body is one `match`, say) gets
+  // most of the room, leaving a ring for the wires that reach it
+  const cap = n === 1 ? (w[0] > 1 ? 0.68 : 0.5) : n === 2 ? 0.43 : 0.38;
   return raw.map((r) => Math.min(cap, r * scale));
 }
 

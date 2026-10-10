@@ -10,7 +10,9 @@ import { Star, Term, rel } from "../js/src/index.js";
 
 /**
  * @typedef {{kind: "rel" | "rel_recursive", domains: rel.Domains, relations: any[], expected: any}} Algebra
- * @typedef {{title: string, source: string, description: string, term: any, algebra?: Algebra, code?: {language: "python", source: string}}} Doc
+ * @typedef {[number, number, number, number]} Span  [line, column, endLine, endColumn] (wiring_diagrams.code)
+ * @typedef {{language: "python", source: string, name?: string, function?: string | null, expand?: number, spans?: Record<string, Span>}} Code
+ * @typedef {{title: string, source: string, description: string, term: any, algebra?: Algebra, code?: Code}} Doc
  * @typedef {{id: string, label: string, from: string, term: Term, leaves: rel.Relation[] | null, domains: rel.Domains}} Entry
  */
 
@@ -206,6 +208,53 @@ export function buildLibrary(docs) {
 /** Library entries that fit a star (same wire names and types). */
 export function compatible(/** @type {readonly Entry[]} */ library, /** @type {Star} */ star) {
   return library.filter((e) => e.term.diagram.outer.equals(star));
+}
+
+/**
+ * The source span of each star of a scanned term, by the key the renderer
+ * gives the star (js/src/scene.js): `leaf:k` for the k-th leaf, in both views,
+ * and `r.<path>` for an intermediate star of the nested view. `spans` is
+ * keyed by path in the term (`code.spans`).
+ *
+ * @param {Term} term @param {Record<string, Span>} spans @returns {Map<string, Span>}
+ */
+export function starSpans(term, spans) {
+  /** @type {Map<string, Span>} */
+  const out = new Map();
+  let leaf = 0;
+  /** @param {Term} t @param {string} prefix */
+  const visit = (t, prefix) =>
+    t.children.forEach((kid, i) => {
+      const path = `${prefix}${i}`;
+      const span = spans[path];
+      if (kid === null) {
+        if (span) out.set(`leaf:${leaf}`, span);
+        leaf++;
+      } else {
+        if (span) out.set(`r.${path}`, span);
+        visit(kid, `${path}.`);
+      }
+    });
+  visit(term, "");
+  return out;
+}
+
+/**
+ * Stars whose code is on lines `from`…`to`: leaves whose code touches those
+ * lines, and intermediate stars (compound statements, expanded calls) whose
+ * code lies within them.
+ *
+ * @param {ReadonlyMap<string, Span>} spans from `starSpans` @param {number} from @param {number} to
+ * @returns {Set<string>}
+ */
+export function starsOnLines(spans, from, to) {
+  const keys = new Set();
+  for (const [key, [line, , endLine]] of spans) {
+    const touches = line <= to && endLine >= from;
+    const within = line >= from && endLine <= to;
+    if (key.startsWith("leaf:") ? touches : within) keys.add(key);
+  }
+  return keys;
 }
 
 /**
