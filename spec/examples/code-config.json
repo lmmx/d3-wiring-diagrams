@@ -1,0 +1,137 @@
+{
+ "title": "Reading a config file",
+ "source": "examples/python/config.py",
+ "description": "try, with and except are stars holding their blocks. The with star takes the opened file on its with wire and binds it to fh inside. Both the try block and the FileNotFoundError handler assign user, so the try star's user' wire carries whichever ran into the merge.",
+ "term": {
+  "diagram": {
+   "cables": ["py", "py", "py", "py", "py", "py", "py"],
+   "inner": [
+    {"path": 0, "user'": 1},
+    {"return": 2},
+    {"return": 3},
+    {"return": 4},
+    {"0": 2, "1": 3, "2": 4, "3": 1, "return": 5},
+    {"0": 5, "return": 6}
+   ],
+   "outer": {"path": 0, "return": 6}
+  },
+  "children": [
+   {
+    "diagram": {
+     "cables": ["py", "py"],
+     "inner": [
+      {"path": 0, "user'": 1},
+      {"user'": 1},
+      {"path": 0}
+     ],
+     "outer": {"path": 0, "user'": 1}
+    },
+    "children": [
+     {
+      "diagram": {
+       "cables": ["py", "py", "py", "py"],
+       "inner": [
+        {"return": 0},
+        {"0": 1, "encoding": 0, "return": 2},
+        {"user'": 3, "with": 2}
+       ],
+       "outer": {"path": 1, "user'": 3}
+      },
+      "children": [
+       null,
+       null,
+       {
+        "diagram": {
+         "cables": ["py", "py"],
+         "inner": [
+          {"fh": 0, "user'": 1}
+         ],
+         "outer": {"user'": 1, "with": 0}
+        },
+        "children": [
+         {
+          "diagram": {
+           "cables": ["py", "py"],
+           "inner": [
+            {"0": 0, "return": 1}
+           ],
+           "outer": {"fh": 0, "user'": 1}
+          },
+          "labels": ["json.load"],
+          "label": "body"
+         }
+        ],
+        "labels": ["body"],
+        "label": "with open(path, encoding='utf-8')"
+       }
+      ],
+      "labels": ["'utf-8'", "open", "with open(path, encoding='utf-8')"],
+      "label": "try"
+     },
+     {
+      "diagram": {
+       "cables": ["py"],
+       "inner": [
+        {"return": 0}
+       ],
+       "outer": {"user'": 0}
+      },
+      "labels": ["{ : }"],
+      "label": "except FileNotFoundError"
+     },
+     {
+      "diagram": {
+       "cables": ["py", "py", "py", "py"],
+       "inner": [
+        {"return": 0},
+        {"0": 1, "1": 0, "return": 2},
+        {"0": 2, "return": 3},
+        {"0": 3}
+       ],
+       "outer": {"path": 1}
+      },
+      "labels": ["<exception>", "f\"…\"", "ValueError", "raise"],
+      "label": "except json.JSONDecodeError"
+     }
+    ],
+    "labels": ["try", "except FileNotFoundError", "except json.JSONDecodeError"],
+    "label": "try"
+   },
+   null,
+   null,
+   null,
+   null,
+   null
+  ],
+  "labels": ["try", "**", "DEFAULTS", "**", "{ : }", "return"],
+  "label": "def load"
+ },
+ "code": {
+  "language": "python",
+  "source": "\"\"\"Reading a config file\n\ntry, with and except are stars holding their blocks. The with star takes\nthe opened file on its with wire and binds it to fh inside. Both the try\nblock and the FileNotFoundError handler assign user, so the try star's\nuser' wire carries whichever ran into the merge.\n\"\"\"\n\nimport json\n\nDEFAULTS = {\"width\": 80, \"colour\": True}\n\n\ndef load(path):\n    \"\"\"\n    >>> load(\"no-such-file.json\")\n    {'width': 80, 'colour': True}\n    \"\"\"\n    try:\n        with open(path, encoding=\"utf-8\") as fh:\n            user = json.load(fh)\n    except FileNotFoundError:\n        user = {}\n    except json.JSONDecodeError as e:\n        raise ValueError(f\"{path}: {e}\") from e\n    return {**DEFAULTS, **user}\n",
+  "name": "config.py",
+  "function": "load",
+  "expand": 0,
+  "spans": {
+   "0": [19, 4, 25, 47],
+   "0.0": [20, 8, 21, 32],
+   "0.0.0": [20, 33, 20, 40],
+   "0.0.1": [20, 13, 20, 41],
+   "0.0.2": [20, 8, 21, 32],
+   "0.0.2.0": [21, 12, 21, 32],
+   "0.0.2.0.0": [21, 19, 21, 32],
+   "0.1": [23, 8, 23, 17],
+   "0.1.0": [23, 15, 23, 17],
+   "0.2": [24, 4, 25, 47],
+   "0.2.0": [24, 4, 25, 47],
+   "0.2.1": [25, 25, 25, 39],
+   "0.2.2": [25, 14, 25, 40],
+   "0.2.3": [25, 8, 25, 47],
+   "1": [26, 11, 26, 31],
+   "2": [26, 14, 26, 22],
+   "3": [26, 11, 26, 31],
+   "4": [26, 11, 26, 31],
+   "5": [26, 4, 26, 31]
+  }
+ }
+}

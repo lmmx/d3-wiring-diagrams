@@ -11,8 +11,9 @@
  * else fades.
  *
  * Styling is left to CSS: the elements carry classes (`wd-star`, `wd-cable`,
- * …), roles as `data-role`, and type colours as the CSS variables
- * `--wd-type-0` … `--wd-type-5`, assigned in sorted type order.
+ * …; `wd-selected` and `wd-linked` on marked stars), roles as `data-role`,
+ * and type colours as the CSS variables `--wd-type-0` … `--wd-type-5`,
+ * assigned in sorted type order.
  */
 
 import { buildScene } from "./scene.js";
@@ -232,6 +233,10 @@ export function createRenderer(d3, svgNode, callbacks = {}) {
     /** Mark one star as selected (by key), or none. */
     select(/** @type {string | null} */ key) {
       layers.stars.selectAll("circle").classed("wd-selected", (/** @type {any} */ d) => d.key === key);
+    },
+    /** Mark stars as linked to something outside the diagram (by key), such as the code under a cursor. */
+    link(/** @type {ReadonlySet<string>} */ keys) {
+      layers.stars.selectAll("circle").classed("wd-linked", (/** @type {any} */ d) => keys.has(d.key));
     },
     resetZoom() {
       svg.transition().duration(DURATION).call(zoom.transform, d3.zoomIdentity);

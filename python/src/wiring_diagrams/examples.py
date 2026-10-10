@@ -4,7 +4,8 @@ Each function returns an :class:`Example`: a term (a tree of diagrams with
 labels) and, where the paper uses one, the data for the relational algebra.
 The leaf relations line up with the inner stars of ``term.evaluate()``.
 ``scripts/generate.py`` writes these to ``spec/examples/*.json``, which the
-Rust and JS test suites and the viewer read.
+Rust and JS test suites and the viewer read, together with scans of the
+Python programs in ``examples/python/`` (:mod:`.code`).
 """
 
 from __future__ import annotations

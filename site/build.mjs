@@ -4,7 +4,9 @@
 //   npm ci --prefix site && npm run --prefix site build
 //
 // There is no framework. Markdown is rendered with `marked`, and the pages share
-// one template. The build fails on any relative link or #anchor that does not
+// one template. Code blocks are highlighted here, at build time, with the same
+// parsers (Lezer) and token classes (viewer/code.css) as the playground's
+// editor, so the pages ship no highlighting script. The build fails on any relative link or #anchor that does not
 // resolve, so a deploy cannot ship a dead link. Links to repository files that
 // are not part of the site (Python and Rust sources, say) point to GitHub.
 
@@ -12,6 +14,13 @@ import { cpSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statS
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { StreamLanguage } from "@codemirror/language";
+import { shell } from "@codemirror/legacy-modes/mode/shell";
+import { classHighlighter, highlightCode } from "@lezer/highlight";
+import { parser as javascript } from "@lezer/javascript";
+import { parser as json } from "@lezer/json";
+import { parser as python } from "@lezer/python";
+import { parser as rust } from "@lezer/rust";
 import { Marked } from "marked";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -20,7 +29,7 @@ const REPO = "https://github.com/lmmx/d3-wiring-diagrams";
 const BRANCH = "master";
 
 /** Copied as they are: what the viewer loads, and the images the docs use. */
-const ASSETS = ["viewer", "js/src", "spec", "docs/img"];
+const ASSETS = ["viewer", "js/src", "spec", "docs/img", "python/src/wiring_diagrams"];
 
 /** Markdown sources (repository paths) → page paths in dist/. */
 const PAGES = new Map([["README.md", "index.html"]]);
@@ -33,9 +42,10 @@ for (const f of JOURNAL) PAGES.set(`docs/journal/${f}`, `docs/journal/${f.replac
 const NAV = [
   ["index.html", "Home"],
   ["viewer/", "Viewer"],
-  ["viewer/?edit", "Playground"],
+  ["viewer/?edit#code-hypot", "Playground"],
   ["docs/theory.html", "Theory"],
   ["docs/format.html", "Format"],
+  ["docs/code.html", "Code"],
   ["docs/visualisation.html", "Visualisation"],
   ["docs/performance.html", "Performance"],
   ["docs/journal/index.html", "Journal"],
@@ -57,7 +67,8 @@ const anchors = new Map();
  */
 function rewrite(source, page, href) {
   if (/^[a-z]+:/i.test(href)) return href;
-  const [rawPath, fragment = ""] = href.split("#");
+  const [beforeFragment, fragment = ""] = href.split("#");
+  const [rawPath, query] = beforeFragment.split("?"); // `?edit` opens the playground
   if (rawPath === "") {
     pending.push({ page, href, target: page, fragment });
     return href;
@@ -66,7 +77,9 @@ function rewrite(source, page, href) {
   const fromPage = (/** @type {string} */ target) => {
     const rel = path.posix.relative(path.posix.dirname(page), target) || path.posix.basename(target);
     pending.push({ page, href, target, fragment });
-    return rel + (fragment ? `#${fragment}` : "");
+    // a directory's index is linked as the directory, as written
+    const link = rawPath.endsWith("/") && rel.endsWith("index.html") ? rel.slice(0, -"index.html".length) : rel;
+    return link + (query !== undefined ? `?${query}` : "") + (fragment ? `#${fragment}` : "");
   };
   if (PAGES.has(repoPath)) return fromPage(/** @type {string} */ (PAGES.get(repoPath)));
   if (repoPath === "docs/journal") return fromPage("docs/journal/index.html");
@@ -102,6 +115,34 @@ const escape = (/** @type {string} */ s) =>
 const stripTags = (/** @type {string} */ html) =>
   html.replace(/<[^>]+>/g, "").replaceAll("&amp;", "&").replaceAll("&lt;", "<").replaceAll("&gt;", ">").replaceAll("&quot;", '"').replaceAll("&#39;", "'");
 
+/** Code block languages → parsers. Blocks in other languages fail the build, except these. */
+const PARSERS = new Map([
+  ["python", python],
+  ["js", javascript],
+  ["json", json],
+  ["rust", rust],
+  ["sh", StreamLanguage.define(shell).parser],
+]);
+const PLAIN = new Set(["", "text", "markdown"]);
+
+/** A code block as HTML, its tokens wrapped in `tok-*` classes. @param {string} code @param {string} lang */
+function highlight(code, lang) {
+  const parser = PARSERS.get(lang);
+  if (!parser) {
+    if (!PLAIN.has(lang)) throw new Error(`no highlighter for code blocks in ${JSON.stringify(lang)}`);
+    return escape(code);
+  }
+  let html = "";
+  highlightCode(
+    code,
+    parser.parse(code),
+    classHighlighter,
+    (text, classes) => (html += classes ? `<span class="${classes}">${escape(text)}</span>` : escape(text)),
+    () => (html += "\n"),
+  );
+  return html;
+}
+
 /** @param {string} source @param {string} page */
 function render(source, page) {
   const slug = slugger();
@@ -121,6 +162,11 @@ function render(source, page) {
         ids.add(id);
         return `<h${depth} id="${escape(id)}"><a class="anchor" href="#${escape(id)}" aria-hidden="true">#</a>${html}</h${depth}>\n`;
       },
+      code({ text, lang }) {
+        const name = (lang ?? "").trim().split(/\s/)[0];
+        const cls = name ? ` class="language-${escape(name)}"` : "";
+        return `<pre><code${cls}>${highlight(text, name)}</code></pre>\n`;
+      },
     },
   });
   const body = /** @type {string} */ (marked.parse(readFileSync(path.join(ROOT, source), "utf8")));
@@ -128,14 +174,29 @@ function render(source, page) {
   return { title, body };
 }
 
+/**
+ * The site's navigation bar, with links relative to `page`.
+ * @param {string} page @param {string} [extra] additional class
+ */
+function navBar(page, extra = "") {
+  const up = (/** @type {string} */ target) => path.posix.relative(path.posix.dirname(page), target) || ".";
+  const links = NAV.map(([href, label]) => {
+    const [file, query] = href.split("?");
+    const target = file.endsWith("/") ? `${up(file)}/` : up(file);
+    const current = href === page || (file === "viewer/" && page === "viewer/index.html" && !query);
+    return `<a href="${escape(target + (query !== undefined ? `?${query}` : ""))}"${current ? ' aria-current="page"' : ""}>${label}</a>`;
+  });
+  return `<header class="site-bar${extra ? ` ${extra}` : ""}">
+      <nav aria-label="Site">
+        ${links.join("\n        ")}
+        <a href="${REPO}">GitHub</a>
+      </nav>
+    </header>`;
+}
+
 /** @param {string} page @param {string} title @param {string} body */
 function template(page, title, body) {
   const up = (/** @type {string} */ target) => path.posix.relative(path.posix.dirname(page), target) || ".";
-  const nav = NAV.map(([href, label]) => {
-    const current = href === page ? ' aria-current="page"' : "";
-    const target = href.endsWith("/") || href.includes("?") ? `${up(href.split("?")[0])}/${href.includes("?") ? `?${href.split("?")[1]}` : ""}` : up(href);
-    return `<a href="${escape(target.replace(/\/\/$/, "/"))}"${current}>${label}</a>`;
-  }).join("\n        ");
   return `<!doctype html>
 <html lang="en">
   <head>
@@ -144,14 +205,11 @@ function template(page, title, body) {
     <title>${escape(title)} · Wiring diagrams</title>
     <meta name="description" content="Spivak's operad of wiring diagrams in Python, Rust and JavaScript, with a d3 viewer and playground." />
     <link rel="stylesheet" href="${escape(up("site.css"))}" />
+    <link rel="stylesheet" href="${escape(up("nav.css"))}" />
+    <link rel="stylesheet" href="${escape(up("viewer/code.css"))}" />
   </head>
   <body>
-    <header class="site-bar">
-      <nav aria-label="Site">
-        ${nav}
-        <a href="${REPO}">GitHub</a>
-      </nav>
-    </header>
+    ${navBar(page)}
     <main class="prose">
 ${body}
     </main>
@@ -162,7 +220,8 @@ ${body}
 
 const LEAD = `<div class="cta">
   <a class="button primary" href="viewer/#half-adder">Open the viewer</a>
-  <a class="button" href="viewer/?edit#or-from-nand">Try the playground</a>
+  <a class="button" href="viewer/?edit#code-pipeline">Draw your Python code</a>
+  <a class="button" href="viewer/?edit#or-from-nand">Plug diagrams together</a>
   <a class="button" href="docs/theory.html">Read how it maps to the paper</a>
 </div>
 `;
@@ -171,8 +230,20 @@ const LEAD = `<div class="cta">
 
 rmSync(DIST, { recursive: true, force: true });
 mkdirSync(DIST, { recursive: true });
-for (const dir of ASSETS) cpSync(path.join(ROOT, dir), path.join(DIST, dir), { recursive: true });
+const notCache = (/** @type {string} */ src) => !src.includes("__pycache__");
+for (const dir of ASSETS) cpSync(path.join(ROOT, dir), path.join(DIST, dir), { recursive: true, filter: notCache });
 cpSync(path.join(ROOT, "site/site.css"), path.join(DIST, "site.css"));
+cpSync(path.join(ROOT, "site/nav.css"), path.join(DIST, "nav.css"));
+
+// the viewer gets the same navigation bar, where its page leaves a marker for it
+const viewer = path.join(DIST, "viewer/index.html");
+const marker = /<!-- site-nav:[^>]*-->/;
+const viewerHTML = readFileSync(viewer, "utf8");
+if (!marker.test(viewerHTML)) throw new Error("viewer/index.html has no <!-- site-nav: --> marker");
+writeFileSync(
+  viewer,
+  viewerHTML.replace(marker, `<link rel="stylesheet" href="../nav.css" />\n    ${navBar("viewer/index.html", "wide")}`),
+);
 
 for (const [source, page] of PAGES) {
   const { title, body } = render(source, page);
@@ -204,7 +275,12 @@ const broken = [];
 for (const { page, href, target, fragment } of pending) {
   const file = path.join(DIST, target);
   if (!existsSync(file)) broken.push(`${page}: ${href} → ${target} does not exist`);
-  else if (fragment && target.endsWith(".html") && !anchors.get(target)?.has(fragment)) {
+  else if (target === "viewer/index.html") {
+    // the viewer's fragment names an example
+    if (fragment && !existsSync(path.join(DIST, "spec/examples", `${fragment}.json`))) {
+      broken.push(`${page}: ${href} → no example ${fragment} in spec/examples`);
+    }
+  } else if (fragment && target.endsWith(".html") && !anchors.get(target)?.has(fragment)) {
     broken.push(`${page}: ${href} → no heading #${fragment} in ${target}`);
   }
 }

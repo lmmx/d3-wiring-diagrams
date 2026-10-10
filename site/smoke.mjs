@@ -1,5 +1,6 @@
 // Browser smoke test of the built site (dist/): every page loads without errors,
-// the viewer draws and computes a relation, and a playground edit works.
+// the viewer draws and computes a relation, a playground edit works, and Python
+// code is scanned, drawn and linked to its diagram.
 //
 //   npm run --prefix site build && npm run --prefix site smoke
 
@@ -71,6 +72,53 @@ await page.waitForFunction(() => document.querySelector("#title")?.textContent?.
 const rows = await page.$$eval("#relation tr", (rs) => rs.slice(1).map((r) => r.textContent));
 check(JSON.stringify(rows) === JSON.stringify(["falsefalse", "truetrue"]), "plugging AND into NOT copies its input");
 check((await page.evaluate(() => location.hash)).startsWith("#doc="), "the edited document is in the URL");
+
+// a scanned program: the source panel is highlighted, and stars and code are linked
+await page.goto(`${base}/viewer/#code-pipeline`);
+await page.waitForSelector("#code:not([hidden]) .cm-content .tok-keyword");
+check(true, "a scanned example shows its highlighted source");
+await page.hover(".wd-star[data-role=leaf] >> nth=0");
+const marked = await page.$$eval("#code .cm-linked", (es) => es.map((e) => e.textContent).join(""));
+check(marked.length > 0, `hovering a star marks its code (${JSON.stringify(marked)})`);
+
+// the playground opens a program in the Python editor, with its scan options
+await page.goto(`${base}/viewer/?edit#code-hypot`);
+await page.waitForSelector("#py-editor .cm-content");
+check((await page.getAttribute("#tab-python", "aria-selected")) === "true", "a program opens on the Python tab");
+check(
+  (await page.inputValue("#py-function")) === "hypot" && (await page.inputValue("#py-expand")) === "1",
+  "the scan's function and expansion are preselected",
+);
+// the cursor on square's body marks the two inlined copies of it (a * and a return each)
+await page.click("#py-editor .cm-line:has-text('return x * x')");
+check((await page.$$(".wd-star.wd-linked")).length === 4, "the cursor in square's body marks both inlined copies");
+
+// editing redraws, with the library's scanner running in Pyodide
+const editor = page.locator("#py-editor .cm-content");
+await editor.click();
+await page.keyboard.press("ControlOrMeta+a");
+await page.keyboard.insertText("def square(x):\n    return x * x\n\ndef hypot(a, b):\n    return (square(a) + square(b)) ** 0.5\n");
+await page.waitForFunction(() => document.querySelector("#py-status")?.textContent?.includes("loaded"), null, {
+  timeout: 180_000,
+});
+check((await page.textContent("#title")) === "function hypot (scanned)", "an edit is scanned and drawn");
+await page.waitForTimeout(1000); // let the previous diagram finish fading out
+const nested = await page.$$eval(".wd-star[data-role=intermediate]", (cs) => cs.length);
+check(nested === 2, "with one level of inlining both square calls are filled with square's body");
+check(
+  (await page.$$eval("#py-function option", (os) => os.map((o) => o.value))).join() === ",square,hypot",
+  "the functions on offer follow the code",
+);
+await editor.click();
+await page.keyboard.press("ControlOrMeta+a");
+await page.keyboard.insertText("def f(:\n");
+await page.waitForSelector("#py-error:not([hidden])", { timeout: 60_000 });
+check((await page.textContent("#py-error"))?.includes("line 1") === true, "a syntax error names its line");
+check((await page.$$("#py-editor .cm-lintRange-error")).length === 1, "and is marked in the editor");
+
+// docs: code blocks are highlighted when the site is built
+await page.goto(`${base}/docs/code.html`);
+check((await page.$$("pre code .tok-keyword")).length > 0, "docs code blocks are highlighted");
 
 await browser.close();
 server.close();

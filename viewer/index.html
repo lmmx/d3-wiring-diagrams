@@ -6,10 +6,12 @@
     <title>Wiring diagrams</title>
     <meta name="description" content="Spivak's operad of wiring diagrams: nested and composed diagrams, with the relational algebra computed live." />
     <link rel="stylesheet" href="viewer.css" />
+    <link rel="stylesheet" href="code.css" />
     <script src="vendor/d3.v7.6.1.min.js"></script>
     <script type="module" src="viewer.js"></script>
   </head>
   <body>
+    <!-- site-nav: the site build (site/build.mjs) puts the docs' navigation bar here -->
     <header class="bar">
       <h1><a href="../">Wiring diagrams</a></h1>
       <label class="field">
@@ -21,7 +23,7 @@
         <button type="button" id="view-flat" aria-pressed="false" title="The composite diagram: intermediate stars removed">Composed</button>
       </div>
       <label class="check"><input type="checkbox" id="labels" checked /> wire names</label>
-      <button type="button" id="edit-toggle" aria-pressed="false" title="Edit the JSON, plug sub-terms into stars, share a link">Playground</button>
+      <button type="button" id="edit-toggle" aria-pressed="false" title="Write Python or JSON, plug sub-terms into stars, share a link">Playground</button>
       <button type="button" id="reset-zoom" class="quiet">Reset zoom</button>
       <label class="quiet file">
         Open JSON…
@@ -31,16 +33,53 @@
 
     <main id="main">
       <section class="editor" id="editor" aria-label="Playground" hidden>
-        <div class="editor-head">
-          <h2>Playground</h2>
+        <div class="tabs" role="tablist" aria-label="Edit as">
+          <button type="button" role="tab" id="tab-python" aria-selected="true" aria-controls="pane-python">Python</button>
+          <button type="button" role="tab" id="tab-json" aria-selected="false" aria-controls="pane-json">JSON</button>
+        </div>
+
+        <div class="pane" id="pane-python" role="tabpanel" aria-labelledby="tab-python">
+          <p class="lede">
+            Write Python and see its wiring diagram. Each <strong>function is a star</strong>: its parameters and
+            <code>return</code> are the wires. The <strong>operations and calls</strong> in its body are the stars
+            inside, and <strong>values</strong> are the cables between them.
+            <a href="../docs/code.html">How code maps to diagrams</a>
+          </p>
+          <div class="fields">
+            <label>Program <select id="py-program"></select></label>
+            <label>Draw <select id="py-function"></select></label>
+            <label title="Fill calls to functions of this module with their bodies: operadic composition is inlining">
+              Inline calls
+              <select id="py-expand">
+                <option value="0">no</option>
+                <option value="1">1 level</option>
+                <option value="2">2 levels</option>
+                <option value="3">3 levels</option>
+              </select>
+            </label>
+          </div>
+          <div class="code-editor" id="py-editor"></div>
+          <div class="row status-row">
+            <button type="button" id="py-scan" class="primary">Draw <kbd>Ctrl</kbd>+<kbd>Enter</kbd></button>
+            <span class="muted" id="py-status" role="status"></span>
+          </div>
+          <p class="error" id="py-error" role="alert" hidden></p>
+          <p class="muted small">
+            The diagram follows your edits once Python has loaded. Hover a star to find its code; put the cursor in
+            the code to find its stars. <kbd>Esc</kbd> then <kbd>Tab</kbd> leaves the editor.
+          </p>
+        </div>
+
+        <div class="pane" id="pane-json" role="tabpanel" aria-labelledby="tab-json" hidden>
           <p class="muted">
             An example, a term or a bare diagram, in the <a href="../docs/format.html">shared JSON format</a>. The
             diagram redraws as you type. Output of <code>term.to_json()</code> (Python) or
             <code>serde_json::to_string(&amp;term)</code> (Rust) pastes straight in.
           </p>
+          <div class="code-editor" id="doc-editor"></div>
+          <p class="error" id="doc-error" role="status" hidden></p>
         </div>
-        <textarea id="doc" spellcheck="false" autocomplete="off" aria-label="Document JSON"></textarea>
-        <p class="error" id="doc-error" role="status" hidden></p>
+
         <div class="actions">
           <button type="button" id="compose-all" title="Replace the term by its composite (one diagram)">Compose term</button>
           <button type="button" id="download">Download</button>
@@ -62,6 +101,12 @@
 
         <dl class="facts" id="facts"></dl>
         <ul class="legend" id="legend"></ul>
+
+        <details id="code" open hidden>
+          <summary>Source code <span class="muted" id="code-name"></span></summary>
+          <div class="code-editor" id="code-source"></div>
+          <p class="muted small">Hover a star to find its code; click a line to find its stars.</p>
+        </details>
 
         <section id="algebra" hidden>
           <h3 id="algebra-title">Rel</h3>

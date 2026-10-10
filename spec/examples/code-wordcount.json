@@ -1,0 +1,65 @@
+{
+ "title": "Counting words",
+ "source": "examples/python/wordcount.py",
+ "description": "Comprehensions, lambdas and generator expressions have their own scopes, so each one is a single star wired to the variables it reads from outside (found, stop, counts, text). Method calls such as text.lower() put the receiver on the . wire. With expansion, the call to words is filled with its body, and WORD.findall shows the compiled pattern as a global it reads.",
+ "term": {
+  "diagram": {
+   "cables": ["py", "py", "py", "py", "py", "py", "py", "py", "py", "py", "py"],
+   "inner": [
+    {"return": 0, "text": 1},
+    {"found": 0, "return": 2, "stop": 3},
+    {"0": 2, "return": 4},
+    {"counts": 4, "return": 5, "text": 1},
+    {"0": 4, "key": 5, "return": 6},
+    {"n": 7, "return": 8},
+    {"0": 6, "1": 8, "return": 9},
+    {"0": 9, "return": 10}
+   ],
+   "outer": {"n": 7, "return": 10, "stop": 3, "text": 1}
+  },
+  "children": [
+   {
+    "diagram": {
+     "cables": ["py", "py", "py", "py"],
+     "inner": [
+      {".": 0, "return": 1},
+      {"0": 1, "return": 2},
+      {"0": 2, "return": 3}
+     ],
+     "outer": {"return": 3, "text": 0}
+    },
+    "labels": [".lower()", "WORD.findall", "return"],
+    "label": "def words"
+   },
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   null
+  ],
+  "labels": ["words", "(w for w in found if w not …", "Counter", "lambda w: (-counts[w], text…", "sorted", ":n", "[]", "return"],
+  "label": "def top_words"
+ },
+ "code": {
+  "language": "python",
+  "source": "\"\"\"Counting words\n\nComprehensions, lambdas and generator expressions have their own scopes, so\neach one is a single star wired to the variables it reads from outside\n(found, stop, counts, text). Method calls such as text.lower() put the\nreceiver on the . wire. With expansion, the call to words is filled with its\nbody, and WORD.findall shows the compiled pattern as a global it reads.\n\"\"\"\n\nimport re\nfrom collections import Counter\n\nWORD = re.compile(r\"[a-z']+\")\nSTOP = frozenset({\"the\", \"a\", \"of\", \"and\", \"to\", \"in\"})\n\n\ndef words(text):\n    return WORD.findall(text.lower())\n\n\ndef top_words(text, n=3, stop=STOP):\n    \"\"\"\n    >>> top_words(\"The cat and the hat. A cat, a hat, a bat!\")\n    ['cat', 'hat', 'bat']\n    \"\"\"\n    found = words(text)\n    counts = Counter(w for w in found if w not in stop)\n    ranked = sorted(counts, key=lambda w: (-counts[w], text.lower().index(w)))\n    return ranked[:n]\n",
+  "name": "wordcount.py",
+  "function": "top_words",
+  "expand": 1,
+  "spans": {
+   "0": [26, 12, 26, 23],
+   "0.0": [18, 24, 18, 36],
+   "0.1": [18, 11, 18, 37],
+   "0.2": [18, 4, 18, 37],
+   "1": [27, 20, 27, 55],
+   "2": [27, 13, 27, 55],
+   "3": [28, 32, 28, 77],
+   "4": [28, 13, 28, 78],
+   "5": [29, 18, 29, 20],
+   "6": [29, 11, 29, 21],
+   "7": [29, 4, 29, 21]
+  }
+ }
+}

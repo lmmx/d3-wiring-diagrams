@@ -1,0 +1,122 @@
+{
+ "title": "module.py, scanned",
+ "source": "examples/python/module.py",
+ "description": "The module the original proof of concept drew as nested circles, now scanned from its source. The module and the class are stars that contain their definitions. Each function is a star whose wires are its parameters and return, filled with the dataflow of its body. Assignments to self.x are stars.",
+ "term": {
+  "diagram": {
+   "cables": ["py"],
+   "inner": [
+    {"return": 0},
+    {}
+   ],
+   "outer": {}
+  },
+  "children": [
+   {
+    "diagram": {
+     "cables": ["py", "py"],
+     "inner": [
+      {"return": 0}
+     ],
+     "outer": {"return": 1}
+    },
+    "labels": ["1"],
+    "label": "def bar"
+   },
+   {
+    "diagram": {
+     "cables": ["py", "py", "py", "py", "py", "py", "py", "py", "py", "py", "py", "py", "py"],
+     "inner": [
+      {"return": 0, "self": 1, "x": 2, "y": 3},
+      {"return": 4, "self": 5, "x": 6, "y": 7},
+      {"cls": 8, "return": 9, "xy": 10},
+      {"return": 11, "self": 12}
+     ],
+     "outer": {}
+    },
+    "children": [
+     {
+      "diagram": {
+       "cables": ["py", "py", "py", "py", "py"],
+       "inner": [
+        {"0": 0, "1": 1, "return": 2},
+        {"0": 2, "return": 3}
+       ],
+       "outer": {"return": 3, "self": 4, "x": 0, "y": 1}
+      },
+      "labels": ["+", "return"],
+      "label": "def Foo.sum"
+     },
+     {
+      "diagram": {
+       "cables": ["py", "py", "py", "py"],
+       "inner": [
+        {"0": 0, "1": 1},
+        {"0": 0, "1": 2}
+       ],
+       "outer": {"return": 3, "self": 0, "x": 1, "y": 2}
+      },
+      "labels": [".x =", ".y ="],
+      "label": "def Foo.__init__"
+     },
+     {
+      "diagram": {
+       "cables": ["py", "py", "py", "py"],
+       "inner": [
+        {"()": 0, "*0": 1, "return": 2},
+        {"0": 2, "return": 3}
+       ],
+       "outer": {"cls": 0, "return": 3, "xy": 1}
+      },
+      "labels": ["call", "return"],
+      "label": "def Foo.from_xy"
+     },
+     {
+      "diagram": {
+       "cables": ["py", "py", "py", "py", "py"],
+       "inner": [
+        {"0": 0, "return": 1},
+        {"return": 2},
+        {"0": 1, "1": 2, "return": 3},
+        {"0": 3, "return": 4}
+       ],
+       "outer": {"return": 4, "self": 0}
+      },
+      "labels": [".x", "2", "**", "return"],
+      "label": "def Foo.xsq"
+     }
+    ],
+    "labels": ["Foo.sum", "Foo.__init__", "Foo.from_xy", "Foo.xsq"],
+    "label": "class Foo"
+   }
+  ],
+  "labels": ["bar", "class Foo"],
+  "label": "module.py"
+ },
+ "code": {
+  "language": "python",
+  "source": "\"\"\"module.py, scanned\n\nThe module the original proof of concept drew as nested circles, now scanned\nfrom its source. The module and the class are stars that contain their\ndefinitions. Each function is a star whose wires are its parameters and\nreturn, filled with the dataflow of its body. Assignments to self.x are stars.\n\"\"\"\n\n\ndef bar():\n    x = 1\n\n\nclass Foo:\n    def sum(self, x, y):\n        return x + y\n\n    def __init__(self, x, y):\n        self.x = x\n        self.y = y\n\n    @classmethod\n    def from_xy(cls, xy):\n        return cls(*xy)\n\n    def xsq(self):\n        return self.x ** 2\n",
+  "name": "module.py",
+  "function": null,
+  "expand": 0,
+  "spans": {
+   "0": [10, 0, 11, 9],
+   "0.0": [11, 8, 11, 9],
+   "1": [14, 0, 27, 26],
+   "1.0": [15, 4, 16, 20],
+   "1.0.0": [16, 15, 16, 20],
+   "1.0.1": [16, 8, 16, 20],
+   "1.1": [18, 4, 20, 18],
+   "1.1.0": [19, 8, 19, 18],
+   "1.1.1": [20, 8, 20, 18],
+   "1.2": [23, 4, 24, 23],
+   "1.2.0": [24, 15, 24, 23],
+   "1.2.1": [24, 8, 24, 23],
+   "1.3": [26, 4, 27, 26],
+   "1.3.0": [27, 15, 27, 21],
+   "1.3.1": [27, 25, 27, 26],
+   "1.3.2": [27, 15, 27, 26],
+   "1.3.3": [27, 8, 27, 26]
+  }
+ }
+}

@@ -63,6 +63,31 @@
         "source": { "type": "string" },
         "description": { "type": "string" },
         "term": { "$ref": "#/$defs/term" },
+        "code": {
+          "description": "Source code the term was scanned from, and how (wiring_diagrams.code.document).",
+          "type": "object",
+          "required": ["language", "source"],
+          "additionalProperties": false,
+          "properties": {
+            "language": { "const": "python" },
+            "source": { "type": "string" },
+            "name": { "type": "string", "description": "the module's name, the label of a module scan's root" },
+            "function": { "type": ["string", "null"], "description": "\"f\" or \"Class.method\"; null scans the module" },
+            "expand": { "type": "integer", "minimum": 0, "description": "levels of calls filled with the callee's body" },
+            "spans": {
+              "type": "object",
+              "description": "Where each star came from, by its path in the term: slot indices from the root joined by dots (\"2\", \"2.0\").",
+              "propertyNames": { "pattern": "^(0|[1-9][0-9]*)(\\.(0|[1-9][0-9]*))*$" },
+              "additionalProperties": {
+                "type": "array",
+                "description": "[line, column, end line, end column]: lines from 1, columns in code points from 0, end exclusive",
+                "prefixItems": [{ "type": "integer", "minimum": 1 }, { "type": "integer", "minimum": 0 }, { "type": "integer", "minimum": 1 }, { "type": "integer", "minimum": 0 }],
+                "items": false,
+                "minItems": 4
+              }
+            }
+          }
+        },
         "algebra": {
           "type": "object",
           "required": ["kind", "domains", "relations", "expected"],

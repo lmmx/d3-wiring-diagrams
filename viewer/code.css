@@ -1,0 +1,148 @@
+/*
+ * Code: syntax colours and the code editor.
+ *
+ * One set of token classes (`tok-*`, @lezer/highlight's classHighlighter) is
+ * used everywhere code appears: the docs pages (highlighted when the site is
+ * built), the viewer's source panel, and the playground's editors (CodeMirror).
+ * So a keyword is the same colour on every page.
+ */
+
+:root {
+  --tok-keyword: #8e24aa;
+  --tok-string: #2e7d32;
+  --tok-string2: #c62828;
+  --tok-number: #b45309;
+  --tok-comment: #6b7280;
+  --tok-definition: #1d4ed8;
+  --tok-property: #0e7490;
+  --tok-type: #9a3412;
+  --tok-special: #c2410c;
+  --tok-meta: #6d28d9;
+  --tok-punctuation: #5b616b;
+  --code-linked: rgb(232 89 12 / 0.16);
+  --code-linked-edge: #e8590c;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --tok-keyword: #d7a2f2;
+    --tok-string: #9bd68a;
+    --tok-string2: #ff8f8f;
+    --tok-number: #f5ad6b;
+    --tok-comment: #8b939e;
+    --tok-definition: #8db5ff;
+    --tok-property: #6ad3e3;
+    --tok-type: #f2b98a;
+    --tok-special: #ffae66;
+    --tok-meta: #bba4ff;
+    --tok-punctuation: #a8afb9;
+    --code-linked: rgb(255 146 43 / 0.2);
+    --code-linked-edge: #ff922b;
+  }
+}
+
+.tok-keyword,
+.tok-bool,
+.tok-atom {
+  color: var(--tok-keyword);
+}
+.tok-string {
+  color: var(--tok-string);
+}
+.tok-string2 {
+  color: var(--tok-string2);
+}
+.tok-number,
+.tok-literal {
+  color: var(--tok-number);
+}
+.tok-comment {
+  color: var(--tok-comment);
+  font-style: italic;
+}
+.tok-definition {
+  color: var(--tok-definition);
+}
+.tok-propertyName {
+  color: var(--tok-property);
+}
+.tok-typeName,
+.tok-className,
+.tok-namespace {
+  color: var(--tok-type);
+}
+.tok-variableName2,
+.tok-macroName {
+  color: var(--tok-special);
+}
+.tok-meta {
+  color: var(--tok-meta);
+}
+.tok-operator,
+.tok-punctuation {
+  color: var(--tok-punctuation);
+}
+.tok-invalid {
+  text-decoration: underline wavy var(--tok-string2);
+}
+
+/* -- CodeMirror ------------------------------------------------------------------ */
+
+.cm-editor {
+  font-size: 13px;
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+}
+.cm-editor.cm-focused {
+  outline: 2px solid var(--accent);
+  outline-offset: -1px;
+}
+.cm-editor .cm-scroller {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  line-height: 1.55;
+}
+.cm-editor .cm-content {
+  caret-color: var(--fg);
+}
+.cm-editor .cm-cursor {
+  border-left-color: var(--fg);
+}
+.cm-editor .cm-gutters {
+  background: transparent;
+  color: var(--muted);
+  border-right: 1px solid var(--rule);
+}
+.cm-editor .cm-activeLine,
+.cm-editor .cm-activeLineGutter {
+  background: color-mix(in srgb, var(--accent) 6%, transparent);
+}
+.cm-editor .cm-selectionBackground,
+.cm-editor.cm-focused .cm-selectionBackground,
+.cm-editor .cm-content ::selection {
+  background: color-mix(in srgb, var(--accent) 24%, transparent) !important;
+}
+.cm-editor .cm-matchingBracket {
+  background: color-mix(in srgb, var(--accent) 18%, transparent);
+  outline: 1px solid color-mix(in srgb, var(--accent) 50%, transparent);
+}
+.cm-editor .cm-selectionMatch {
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+}
+.cm-editor .cm-placeholder {
+  color: var(--muted);
+}
+.cm-editor .cm-tooltip {
+  background: var(--panel);
+  color: var(--fg);
+  border: 1px solid var(--rule);
+}
+.cm-editor .cm-diagnostic-error {
+  border-left-color: var(--tok-string2);
+}
+
+/* the code of the star under the pointer (viewer.js links stars and source) */
+.cm-linked {
+  background: var(--code-linked);
+  border-bottom: 2px solid var(--code-linked-edge);
+}

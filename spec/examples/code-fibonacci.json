@@ -1,0 +1,79 @@
+{
+ "title": "Fibonacci, iteratively",
+ "source": "examples/python/fibonacci.py",
+ "description": "a, b = b, a + b builds a tuple and unpacks it: a ( , ) star feeding an unpack star, whose wires [0] and [1] become the new a and b. Both are read by the next iteration, so the loop's body writes a' and b', and the loop passes a' on to the return.",
+ "term": {
+  "diagram": {
+   "cables": ["py", "py", "py", "py", "py", "py", "py", "py", "py"],
+   "inner": [
+    {"return": 0},
+    {"return": 1},
+    {"0": 0, "1": 1, "return": 2},
+    {"0": 2, "[0]": 3, "[1]": 4},
+    {"0": 5, "return": 6},
+    {"a": 3, "a'": 7, "b": 4, "in": 6},
+    {"0": 7, "return": 8}
+   ],
+   "outer": {"n": 5, "return": 8}
+  },
+  "children": [
+   null,
+   null,
+   null,
+   null,
+   null,
+   {
+    "diagram": {
+     "cables": ["py", "py", "py", "py", "py", "py"],
+     "inner": [
+      {"0": 0, "return": 1},
+      {"a": 2, "a'": 3, "b": 4, "b'": 5}
+     ],
+     "outer": {"a": 2, "a'": 3, "b": 4, "in": 0}
+    },
+    "children": [
+     null,
+     {
+      "diagram": {
+       "cables": ["py", "py", "py", "py", "py", "py"],
+       "inner": [
+        {"0": 0, "1": 1, "return": 2},
+        {"0": 1, "1": 2, "return": 3},
+        {"0": 3, "[0]": 4, "[1]": 5}
+       ],
+       "outer": {"a": 0, "a'": 4, "b": 1, "b'": 5}
+      },
+      "labels": ["+", "( , )", "unpack"],
+      "label": "body"
+     }
+    ],
+    "labels": ["item", "body"],
+    "label": "for _ in range(n)"
+   },
+   null
+  ],
+  "labels": ["0", "1", "( , )", "unpack", "range", "for _ in range(n)", "return"],
+  "label": "def fib"
+ },
+ "code": {
+  "language": "python",
+  "source": "\"\"\"Fibonacci, iteratively\n\na, b = b, a + b builds a tuple and unpacks it: a ( , ) star feeding an\nunpack star, whose wires [0] and [1] become the new a and b. Both are read\nby the next iteration, so the loop's body writes a' and b', and the loop\npasses a' on to the return.\n\"\"\"\n\n\ndef fib(n):\n    \"\"\"\n    >>> [fib(n) for n in range(10)]\n    [0, 1, 1, 2, 3, 5, 8, 13, 21, 34]\n    \"\"\"\n    a, b = 0, 1\n    for _ in range(n):\n        a, b = b, a + b\n    return a\n",
+  "name": "fibonacci.py",
+  "function": "fib",
+  "expand": 0,
+  "spans": {
+   "0": [15, 11, 15, 12],
+   "1": [15, 14, 15, 15],
+   "2": [15, 11, 15, 15],
+   "3": [15, 4, 15, 15],
+   "4": [16, 13, 16, 21],
+   "5": [16, 4, 17, 23],
+   "5.0": [16, 8, 16, 9],
+   "5.1": [17, 8, 17, 23],
+   "5.1.0": [17, 18, 17, 23],
+   "5.1.1": [17, 15, 17, 23],
+   "5.1.2": [17, 8, 17, 23],
+   "6": [18, 4, 18, 12]
+  }
+ }
+}

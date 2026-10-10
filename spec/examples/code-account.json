@@ -1,0 +1,260 @@
+{
+ "title": "A class with methods",
+ "source": "examples/python/account.py",
+ "description": "The class is a star holding one star per method. transfer calls self.withdraw, a method of the same class, so the call has withdraw's own interface {self, amount, return} and is filled with its body. target.deposit(amount) is called on another object, which the scan cannot resolve statically, so it stays a method-call star with the receiver on its . wire.",
+ "term": {
+  "diagram": {
+   "cables": [],
+   "inner": [
+    {}
+   ],
+   "outer": {}
+  },
+  "children": [
+   {
+    "diagram": {
+     "cables": ["py", "py", "py", "py", "py", "py", "py", "py", "py", "py", "py", "py", "py"],
+     "inner": [
+      {"balance": 0, "return": 1, "self": 2},
+      {"amount": 3, "return": 4, "self": 5},
+      {"amount": 6, "return": 7, "self": 8},
+      {"amount": 9, "return": 10, "self": 11, "target": 12}
+     ],
+     "outer": {}
+    },
+    "children": [
+     {
+      "diagram": {
+       "cables": ["py", "py", "py"],
+       "inner": [
+        {"0": 0, "1": 1}
+       ],
+       "outer": {"balance": 1, "return": 2, "self": 0}
+      },
+      "labels": [".balance ="],
+      "label": "def Account.__init__"
+     },
+     {
+      "diagram": {
+       "cables": ["py", "py", "py", "py", "py", "py", "py"],
+       "inner": [
+        {"return": 0},
+        {"0": 1, "1": 0, "return": 2},
+        {"if": 2},
+        {"0": 3, "return": 4},
+        {"0": 4, "1": 1, "return": 5},
+        {"0": 3, "1": 5}
+       ],
+       "outer": {"amount": 1, "return": 6, "self": 3}
+      },
+      "children": [
+       null,
+       null,
+       {
+        "diagram": {
+         "cables": ["py"],
+         "inner": [
+          {}
+         ],
+         "outer": {"if": 0}
+        },
+        "children": [
+         {
+          "diagram": {
+           "cables": ["py", "py"],
+           "inner": [
+            {"return": 0},
+            {"0": 0, "return": 1},
+            {"0": 1}
+           ],
+           "outer": {}
+          },
+          "labels": ["'deposit must be positive'", "ValueError", "raise"],
+          "label": "then"
+         }
+        ],
+        "labels": ["then"],
+        "label": "if amount <= 0"
+       },
+       null,
+       null,
+       null
+      ],
+      "labels": ["0", "<=", "if amount <= 0", ".balance", "+=", ".balance ="],
+      "label": "def Account.deposit"
+     },
+     {
+      "diagram": {
+       "cables": ["py", "py", "py", "py", "py", "py", "py"],
+       "inner": [
+        {"0": 0, "return": 1},
+        {"0": 2, "1": 1, "return": 3},
+        {"if": 3},
+        {"0": 0, "return": 4},
+        {"0": 4, "1": 2, "return": 5},
+        {"0": 0, "1": 5},
+        {"0": 2, "return": 6}
+       ],
+       "outer": {"amount": 2, "return": 6, "self": 0}
+      },
+      "children": [
+       null,
+       null,
+       {
+        "diagram": {
+         "cables": ["py"],
+         "inner": [
+          {}
+         ],
+         "outer": {"if": 0}
+        },
+        "children": [
+         {
+          "diagram": {
+           "cables": ["py", "py"],
+           "inner": [
+            {"return": 0},
+            {"0": 0, "return": 1},
+            {"0": 1}
+           ],
+           "outer": {}
+          },
+          "labels": ["'insufficient funds'", "ValueError", "raise"],
+          "label": "then"
+         }
+        ],
+        "labels": ["then"],
+        "label": "if amount > self.balance"
+       },
+       null,
+       null,
+       null,
+       null
+      ],
+      "labels": [".balance", ">", "if amount > self.balance", ".balance", "-=", ".balance =", "return"],
+      "label": "def Account.withdraw"
+     },
+     {
+      "diagram": {
+       "cables": ["py", "py", "py", "py", "py", "py"],
+       "inner": [
+        {"amount": 0, "return": 1, "self": 2},
+        {".": 3, "0": 1, "return": 4}
+       ],
+       "outer": {"amount": 0, "return": 5, "self": 2, "target": 3}
+      },
+      "children": [
+       {
+        "diagram": {
+         "cables": ["py", "py", "py", "py", "py", "py", "py"],
+         "inner": [
+          {"0": 0, "return": 1},
+          {"0": 2, "1": 1, "return": 3},
+          {"if": 3},
+          {"0": 0, "return": 4},
+          {"0": 4, "1": 2, "return": 5},
+          {"0": 0, "1": 5},
+          {"0": 2, "return": 6}
+         ],
+         "outer": {"amount": 2, "return": 6, "self": 0}
+        },
+        "children": [
+         null,
+         null,
+         {
+          "diagram": {
+           "cables": ["py"],
+           "inner": [
+            {}
+           ],
+           "outer": {"if": 0}
+          },
+          "children": [
+           {
+            "diagram": {
+             "cables": ["py", "py"],
+             "inner": [
+              {"return": 0},
+              {"0": 0, "return": 1},
+              {"0": 1}
+             ],
+             "outer": {}
+            },
+            "labels": ["'insufficient funds'", "ValueError", "raise"],
+            "label": "then"
+           }
+          ],
+          "labels": ["then"],
+          "label": "if amount > self.balance"
+         },
+         null,
+         null,
+         null,
+         null
+        ],
+        "labels": [".balance", ">", "if amount > self.balance", ".balance", "-=", ".balance =", "return"],
+        "label": "def Account.withdraw"
+       },
+       null
+      ],
+      "labels": ["Account.withdraw", ".deposit()"],
+      "label": "def Account.transfer"
+     }
+    ],
+    "labels": ["Account.__init__", "Account.deposit", "Account.withdraw", "Account.transfer"],
+    "label": "class Account"
+   }
+  ],
+  "labels": ["class Account"],
+  "label": "account.py"
+ },
+ "code": {
+  "language": "python",
+  "source": "\"\"\"A class with methods\n\nThe class is a star holding one star per method. transfer calls\nself.withdraw, a method of the same class, so the call has withdraw's own\ninterface {self, amount, return} and is filled with its body.\ntarget.deposit(amount) is called on another object, which the scan cannot\nresolve statically, so it stays a method-call star with the receiver on\nits . wire.\n\"\"\"\n\n\nclass Account:\n    \"\"\"\n    >>> a, b = Account(100), Account(0)\n    >>> a.transfer(b, 30)\n    >>> a.balance, b.balance\n    (70, 30)\n    \"\"\"\n\n    def __init__(self, balance=0):\n        self.balance = balance\n\n    def deposit(self, amount):\n        if amount <= 0:\n            raise ValueError(\"deposit must be positive\")\n        self.balance += amount\n\n    def withdraw(self, amount):\n        if amount > self.balance:\n            raise ValueError(\"insufficient funds\")\n        self.balance -= amount\n        return amount\n\n    def transfer(self, target, amount):\n        target.deposit(self.withdraw(amount))\n",
+  "name": "account.py",
+  "function": null,
+  "expand": 1,
+  "spans": {
+   "0": [12, 0, 35, 45],
+   "0.0": [20, 4, 21, 30],
+   "0.0.0": [21, 8, 21, 30],
+   "0.1": [23, 4, 26, 30],
+   "0.1.0": [24, 21, 24, 22],
+   "0.1.1": [24, 11, 24, 22],
+   "0.1.2": [24, 8, 25, 56],
+   "0.1.2.0": [25, 12, 25, 56],
+   "0.1.2.0.0": [25, 29, 25, 55],
+   "0.1.2.0.1": [25, 18, 25, 56],
+   "0.1.2.0.2": [25, 12, 25, 56],
+   "0.1.3": [26, 8, 26, 20],
+   "0.1.4": [26, 8, 26, 30],
+   "0.1.5": [26, 8, 26, 30],
+   "0.2": [28, 4, 32, 21],
+   "0.2.0": [29, 20, 29, 32],
+   "0.2.1": [29, 11, 29, 32],
+   "0.2.2": [29, 8, 30, 50],
+   "0.2.2.0": [30, 12, 30, 50],
+   "0.2.2.0.0": [30, 29, 30, 49],
+   "0.2.2.0.1": [30, 18, 30, 50],
+   "0.2.2.0.2": [30, 12, 30, 50],
+   "0.2.3": [31, 8, 31, 20],
+   "0.2.4": [31, 8, 31, 30],
+   "0.2.5": [31, 8, 31, 30],
+   "0.2.6": [32, 8, 32, 21],
+   "0.3": [34, 4, 35, 45],
+   "0.3.0": [35, 23, 35, 44],
+   "0.3.0.0": [29, 20, 29, 32],
+   "0.3.0.1": [29, 11, 29, 32],
+   "0.3.0.2": [29, 8, 30, 50],
+   "0.3.0.2.0": [30, 12, 30, 50],
+   "0.3.0.2.0.0": [30, 29, 30, 49],
+   "0.3.0.2.0.1": [30, 18, 30, 50],
+   "0.3.0.2.0.2": [30, 12, 30, 50],
+   "0.3.0.3": [31, 8, 31, 20],
+   "0.3.0.4": [31, 8, 31, 30],
+   "0.3.0.5": [31, 8, 31, 30],
+   "0.3.0.6": [32, 8, 32, 21],
+   "0.3.1": [35, 8, 35, 45]
+  }
+ }
+}

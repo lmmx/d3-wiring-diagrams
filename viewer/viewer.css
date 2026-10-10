@@ -154,12 +154,13 @@ input:focus-visible {
 
 main {
   flex: 1;
+  min-height: 0;
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(18rem, 24rem);
 }
 
 main.editing {
-  grid-template-columns: minmax(18rem, 26rem) minmax(0, 1fr) minmax(16rem, 22rem);
+  grid-template-columns: minmax(22rem, 34rem) minmax(0, 1fr) minmax(16rem, 22rem);
 }
 
 @media (max-width: 52rem) {
@@ -176,7 +177,7 @@ main.editing {
   padding: 1rem;
   border-right: 1px solid var(--rule);
   background: var(--panel);
-  max-height: calc(100vh - 3.5rem);
+  overflow: auto;
   min-width: 0;
 }
 
@@ -191,21 +192,6 @@ main.editing {
 
 .editor-head p {
   margin: 0.25rem 0 0;
-}
-
-#doc {
-  flex: 1;
-  min-height: 16rem;
-  width: 100%;
-  resize: vertical;
-  font: 12px/1.45 ui-monospace, "SF Mono", Menlo, Consolas, monospace;
-  color: var(--fg);
-  background: var(--bg);
-  border: 1px solid var(--rule);
-  border-radius: 6px;
-  padding: 0.6rem;
-  tab-size: 1;
-  white-space: pre;
 }
 
 .actions {
@@ -227,6 +213,131 @@ main.editing {
   max-width: 100%;
 }
 
+.tabs {
+  display: flex;
+  gap: 0.25rem;
+  border-bottom: 1px solid var(--rule);
+}
+
+.tabs button {
+  border: 0;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  background: none;
+  color: var(--muted);
+  padding: 0.35rem 0.6rem;
+}
+
+.tabs button[aria-selected="true"] {
+  color: var(--fg);
+  border-bottom-color: var(--fg);
+  font-weight: 600;
+}
+
+.pane {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  flex: 1;
+  min-height: 0;
+}
+
+.pane[hidden] {
+  display: none;
+}
+
+.pane p {
+  margin: 0;
+}
+
+.row input {
+  font: inherit;
+  color: inherit;
+  background: var(--bg);
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  padding: 0.2rem 0.4rem;
+}
+
+button.primary {
+  background: var(--fg);
+  color: var(--bg);
+  border-color: var(--fg);
+}
+
+/* code editors: the playground's grow to fill their pane; the panel's source scrolls */
+.code-editor {
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.pane .code-editor {
+  flex: 1;
+  min-height: 16rem;
+}
+
+.code-editor .cm-editor {
+  flex: 1;
+  min-height: 0;
+}
+
+#code .code-editor {
+  margin-top: 0.5rem;
+  max-height: 26rem;
+}
+
+#code .cm-editor {
+  font-size: 12px;
+}
+
+.lede {
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+.fields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 0.9rem;
+  font-size: 0.85rem;
+}
+
+.fields label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: var(--muted);
+}
+
+.fields select {
+  color: var(--fg);
+  max-width: 15rem;
+}
+
+.small {
+  font-size: 0.78rem;
+}
+
+kbd {
+  font: 0.75em ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  border: 1px solid currentColor;
+  border-radius: 3px;
+  padding: 0 0.25em;
+  opacity: 0.85;
+}
+
+.status-row {
+  min-height: 2rem;
+}
+
+#code summary {
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.row,
 .tools .row {
   display: flex;
   flex-wrap: wrap;
@@ -248,7 +359,6 @@ code {
   display: block;
   width: 100%;
   height: auto;
-  max-height: calc(100vh - 7rem);
   aspect-ratio: 2.64 / 2.56;
   margin: 0 auto;
   touch-action: none;
@@ -266,7 +376,6 @@ code {
   background: var(--panel);
   padding: 1rem 1.25rem 2rem;
   overflow: auto;
-  max-height: calc(100vh - 3.5rem);
 }
 
 @media (max-width: 52rem) {
@@ -400,6 +509,12 @@ th {
   stroke-width: 0.012px;
 }
 
+/* stars whose code is under the cursor (and the code of the star under the pointer: code.css) */
+.wd .wd-star.wd-linked {
+  fill: var(--code-linked);
+  stroke: var(--code-linked-edge);
+}
+
 .wd .wd-cable {
   fill: none;
   stroke-linecap: round;
@@ -442,3 +557,25 @@ th {
   fill: var(--wd-hot);
 }
 
+
+/* On wide screens the page is exactly one viewport tall, whatever bars sit above
+   the toolbar (the site build adds the docs' navigation). The panels scroll and
+   the diagram fits the space between them. */
+@media (min-width: 52rem) {
+  body {
+    height: 100vh;
+  }
+
+  .canvas {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+
+  #diagram {
+    flex: 1;
+    min-height: 0;
+    height: 100%;
+    aspect-ratio: auto;
+  }
+}

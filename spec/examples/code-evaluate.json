@@ -1,0 +1,174 @@
+{
+ "title": "An expression evaluator",
+ "source": "examples/python/evaluate.py",
+ "description": "A match statement is a star with one branch per case. Names a pattern captures (left, right, name, …) are capture stars on the matched value. evaluate calls itself: with expansion on, the recursive calls stay stars, because a call is never expanded into a function that is already being expanded.",
+ "term": {
+  "diagram": {
+   "cables": ["py", "py", "py"],
+   "inner": [
+    {"env": 0, "expr": 1, "match": 1, "return": 2}
+   ],
+   "outer": {"env": 0, "expr": 1, "return": 2}
+  },
+  "children": [
+   {
+    "diagram": {
+     "cables": ["py", "py", "py", "py", "py", "py", "py", "py", "py", "py", "py", "py"],
+     "inner": [
+      {"expr": 0, "return": 1},
+      {"0": 2, "return": 3},
+      {"env": 4, "name": 3, "return": 1},
+      {"0": 2, "return": 5},
+      {"0": 2, "return": 6},
+      {"env": 4, "left": 5, "return": 1, "right": 6},
+      {"0": 2, "return": 7},
+      {"0": 2, "return": 8},
+      {"env": 4, "left": 7, "return": 1, "right": 8},
+      {"0": 2, "return": 9},
+      {"0": 2, "return": 10},
+      {"0": 2, "return": 11},
+      {"body": 9, "env": 4, "name": 10, "return": 1, "value": 11},
+      {"expr": 0}
+     ],
+     "outer": {"env": 4, "expr": 0, "match": 2, "return": 1}
+    },
+    "children": [
+     {
+      "diagram": {
+       "cables": ["py", "py"],
+       "inner": [
+        {"0": 0, "return": 1}
+       ],
+       "outer": {"expr": 0, "return": 1}
+      },
+      "labels": ["return"],
+      "label": "case int() | float()"
+     },
+     null,
+     {
+      "diagram": {
+       "cables": ["py", "py", "py", "py"],
+       "inner": [
+        {"0": 0, "1": 1, "return": 2},
+        {"0": 2, "return": 3}
+       ],
+       "outer": {"env": 0, "name": 1, "return": 3}
+      },
+      "labels": ["[]", "return"],
+      "label": "case str(name)"
+     },
+     null,
+     null,
+     {
+      "diagram": {
+       "cables": ["py", "py", "py", "py", "py", "py", "py"],
+       "inner": [
+        {"env": 0, "expr": 1, "return": 2},
+        {"env": 0, "expr": 3, "return": 4},
+        {"0": 2, "1": 4, "return": 5},
+        {"0": 5, "return": 6}
+       ],
+       "outer": {"env": 0, "left": 1, "return": 6, "right": 3}
+      },
+      "labels": ["evaluate", "evaluate", "+", "return"],
+      "label": "case ['+', left, right]"
+     },
+     null,
+     null,
+     {
+      "diagram": {
+       "cables": ["py", "py", "py", "py", "py", "py", "py"],
+       "inner": [
+        {"env": 0, "expr": 1, "return": 2},
+        {"env": 0, "expr": 3, "return": 4},
+        {"0": 2, "1": 4, "return": 5},
+        {"0": 5, "return": 6}
+       ],
+       "outer": {"env": 0, "left": 1, "return": 6, "right": 3}
+      },
+      "labels": ["evaluate", "evaluate", "*", "return"],
+      "label": "case ['*', left, right]"
+     },
+     null,
+     null,
+     null,
+     {
+      "diagram": {
+       "cables": ["py", "py", "py", "py", "py", "py", "py", "py", "py"],
+       "inner": [
+        {"return": 0},
+        {"env": 1, "expr": 2, "return": 3},
+        {"0": 0, "1": 1, "2": 4, "3": 3, "return": 5},
+        {"env": 5, "expr": 6, "return": 7},
+        {"0": 7, "return": 8}
+       ],
+       "outer": {"body": 6, "env": 1, "name": 4, "return": 8, "value": 2}
+      },
+      "labels": ["**", "evaluate", "{ : }", "evaluate", "return"],
+      "label": "case ['let', name, value, body]"
+     },
+     {
+      "diagram": {
+       "cables": ["py", "py", "py"],
+       "inner": [
+        {"0": 0, "return": 1},
+        {"0": 1, "return": 2},
+        {"0": 2}
+       ],
+       "outer": {"expr": 0}
+      },
+      "labels": ["f\"…\"", "ValueError", "raise"],
+      "label": "case _"
+     }
+    ],
+    "labels": ["case int() | float()", "capture name", "case str(name)", "capture left", "capture right", "case ['+', left, right]", "capture left", "capture right", "case ['*', left, right]", "capture body", "capture name", "capture value", "case ['let', name, value, body]", "case _"],
+    "label": "match expr"
+   }
+  ],
+  "labels": ["match expr"],
+  "label": "def evaluate"
+ },
+ "code": {
+  "language": "python",
+  "source": "\"\"\"An expression evaluator\n\nA match statement is a star with one branch per case. Names a pattern\ncaptures (left, right, name, …) are capture stars on the matched value.\nevaluate calls itself: with expansion on, the recursive calls stay stars,\nbecause a call is never expanded into a function that is already being\nexpanded.\n\"\"\"\n\n\ndef evaluate(expr, env):\n    \"\"\"\n    >>> evaluate((\"let\", \"x\", 3, (\"+\", \"x\", (\"*\", \"x\", 2))), {})\n    9\n    \"\"\"\n    match expr:\n        case int() | float():\n            return expr\n        case str(name):\n            return env[name]\n        case (\"+\", left, right):\n            return evaluate(left, env) + evaluate(right, env)\n        case (\"*\", left, right):\n            return evaluate(left, env) * evaluate(right, env)\n        case (\"let\", name, value, body):\n            return evaluate(body, {**env, name: evaluate(value, env)})\n        case _:\n            raise ValueError(f\"not an expression: {expr!r}\")\n",
+  "name": "evaluate.py",
+  "function": "evaluate",
+  "expand": 1,
+  "spans": {
+   "0": [16, 4, 28, 60],
+   "0.0": [18, 12, 18, 23],
+   "0.0.0": [18, 12, 18, 23],
+   "0.1": [19, 13, 19, 22],
+   "0.2": [20, 12, 20, 28],
+   "0.2.0": [20, 19, 20, 28],
+   "0.2.1": [20, 12, 20, 28],
+   "0.3": [21, 13, 21, 31],
+   "0.4": [21, 13, 21, 31],
+   "0.5": [22, 12, 22, 61],
+   "0.5.0": [22, 19, 22, 38],
+   "0.5.1": [22, 41, 22, 61],
+   "0.5.2": [22, 19, 22, 61],
+   "0.5.3": [22, 12, 22, 61],
+   "0.6": [23, 13, 23, 31],
+   "0.7": [23, 13, 23, 31],
+   "0.8": [24, 12, 24, 61],
+   "0.8.0": [24, 19, 24, 38],
+   "0.8.1": [24, 41, 24, 61],
+   "0.8.2": [24, 19, 24, 61],
+   "0.8.3": [24, 12, 24, 61],
+   "0.9": [25, 13, 25, 39],
+   "0.10": [25, 13, 25, 39],
+   "0.11": [25, 13, 25, 39],
+   "0.12": [26, 12, 26, 70],
+   "0.12.0": [26, 34, 26, 69],
+   "0.12.1": [26, 48, 26, 68],
+   "0.12.2": [26, 34, 26, 69],
+   "0.12.3": [26, 19, 26, 70],
+   "0.12.4": [26, 12, 26, 70],
+   "0.13": [28, 12, 28, 60],
+   "0.13.0": [28, 29, 28, 59],
+   "0.13.1": [28, 18, 28, 60],
+   "0.13.2": [28, 12, 28, 60]
+  }
+ }
+}

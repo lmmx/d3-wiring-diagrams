@@ -1,0 +1,113 @@
+{
+ "title": "A loop with a branch",
+ "source": "examples/python/mean.py",
+ "description": "A for loop is a star filled with its body's diagram. Its wires are the iterated value (in), the variables it reads (total, count), and the ones it writes that are used afterwards (total', count'). The if inside is a star of the same kind.",
+ "term": {
+  "diagram": {
+   "cables": ["py", "py", "py", "py", "py", "py", "py", "py", "py"],
+   "inner": [
+    {"return": 0},
+    {"return": 1},
+    {"count": 1, "count'": 2, "in": 3, "total": 0, "total'": 4},
+    {"0": 4, "1": 2, "return": 5},
+    {"return": 6},
+    {"0": 5, "else": 6, "if": 2, "return": 7},
+    {"0": 7, "return": 8}
+   ],
+   "outer": {"return": 8, "xs": 3}
+  },
+  "children": [
+   null,
+   null,
+   {
+    "diagram": {
+     "cables": ["py", "py", "py", "py", "py", "py"],
+     "inner": [
+      {"0": 0, "return": 1},
+      {"count": 2, "count'": 3, "total": 4, "total'": 5, "x": 1}
+     ],
+     "outer": {"count": 2, "count'": 3, "in": 0, "total": 4, "total'": 5}
+    },
+    "children": [
+     null,
+     {
+      "diagram": {
+       "cables": ["py", "py", "py", "py", "py", "py", "py"],
+       "inner": [
+        {"return": 0},
+        {"0": 1, "1": 0, "return": 2},
+        {"count": 3, "count'": 4, "if": 2, "total": 5, "total'": 6, "x": 1}
+       ],
+       "outer": {"count": 3, "count'": 4, "total": 5, "total'": 6, "x": 1}
+      },
+      "children": [
+       null,
+       null,
+       {
+        "diagram": {
+         "cables": ["py", "py", "py", "py", "py", "py"],
+         "inner": [
+          {"count": 0, "count'": 1, "total": 2, "total'": 3, "x": 4}
+         ],
+         "outer": {"count": 0, "count'": 1, "if": 5, "total": 2, "total'": 3, "x": 4}
+        },
+        "children": [
+         {
+          "diagram": {
+           "cables": ["py", "py", "py", "py", "py", "py"],
+           "inner": [
+            {"0": 0, "1": 1, "return": 2},
+            {"return": 3},
+            {"0": 4, "1": 3, "return": 5}
+           ],
+           "outer": {"count": 4, "count'": 5, "total": 0, "total'": 2, "x": 1}
+          },
+          "labels": ["+=", "1", "+="],
+          "label": "then"
+         }
+        ],
+        "labels": ["then"],
+        "label": "if x > 0"
+       }
+      ],
+      "labels": ["0", ">", "if x > 0"],
+      "label": "body"
+     }
+    ],
+    "labels": ["item", "body"],
+    "label": "for x in xs"
+   },
+   null,
+   null,
+   null,
+   null
+  ],
+  "labels": ["0", "0", "for x in xs", "/", "0.0", "if-else", "return"],
+  "label": "def mean_positive"
+ },
+ "code": {
+  "language": "python",
+  "source": "\"\"\"A loop with a branch\n\nA for loop is a star filled with its body's diagram. Its wires are the\niterated value (in), the variables it reads (total, count), and the ones it\nwrites that are used afterwards (total', count'). The if inside is a star of\nthe same kind.\n\"\"\"\n\n\ndef mean_positive(xs):\n    \"\"\"\n    >>> mean_positive([3, -1, 5])\n    4.0\n    >>> mean_positive([])\n    0.0\n    \"\"\"\n    total = 0\n    count = 0\n    for x in xs:\n        if x > 0:\n            total += x\n            count += 1\n    return total / count if count else 0.0\n",
+  "name": "mean.py",
+  "function": "mean_positive",
+  "expand": 0,
+  "spans": {
+   "0": [17, 12, 17, 13],
+   "1": [18, 12, 18, 13],
+   "2": [19, 4, 22, 22],
+   "2.0": [19, 8, 19, 9],
+   "2.1": [20, 8, 22, 22],
+   "2.1.0": [20, 15, 20, 16],
+   "2.1.1": [20, 11, 20, 16],
+   "2.1.2": [20, 8, 22, 22],
+   "2.1.2.0": [21, 12, 22, 22],
+   "2.1.2.0.0": [21, 12, 21, 22],
+   "2.1.2.0.1": [22, 21, 22, 22],
+   "2.1.2.0.2": [22, 12, 22, 22],
+   "3": [23, 11, 23, 24],
+   "4": [23, 39, 23, 42],
+   "5": [23, 11, 23, 42],
+   "6": [23, 4, 23, 42]
+  }
+ }
+}
